@@ -1,12 +1,15 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Add Member
-        </h2>
+        <div>
+            <h2 class="section-heading">
+                Add Member
+            </h2>
+            <p class="section-subheading">Create a new member profile with clear, complete club records.</p>
+        </div>
     </x-slot>
 
-    <div class="py-6">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+    <div class="page-shell">
+        <div class="page-content max-w-4xl">
             @if ($errors->any())
                 <div class="mb-4 rounded-md bg-red-100 p-4 text-red-800">
                     <p class="font-semibold">Please fix the following errors:</p>
@@ -18,13 +21,13 @@
                 </div>
             @endif
 
-            <div class="bg-white shadow-sm sm:rounded-lg">
-                <div class="p-6 text-gray-900">
+            <div class="app-panel">
+                <div class="panel-body text-gray-900">
                     <form method="POST" action="{{ route('members.store') }}">
                         @csrf
 
-                        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            <div>
+                        <div class="form-grid">
+                            <div class="field-stack">
                                 <label for="member_code" class="block text-sm font-medium text-gray-700">Member Code</label>
                                 <input
                                     id="member_code"
@@ -35,7 +38,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="membership_status" class="block text-sm font-medium text-gray-700">Membership Status</label>
                                 <select
                                     id="membership_status"
@@ -49,7 +52,7 @@
                                 </select>
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
                                 <input
                                     id="first_name"
@@ -61,7 +64,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
                                 <input
                                     id="last_name"
@@ -73,7 +76,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="middle_name" class="block text-sm font-medium text-gray-700">Middle Name</label>
                                 <input
                                     id="middle_name"
@@ -84,7 +87,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="suffix" class="block text-sm font-medium text-gray-700">Suffix</label>
                                 <input
                                     id="suffix"
@@ -95,7 +98,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="gender" class="block text-sm font-medium text-gray-700">Gender</label>
                                 <input
                                     id="gender"
@@ -106,7 +109,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="birthdate" class="block text-sm font-medium text-gray-700">Birthdate</label>
                                 <input
                                     id="birthdate"
@@ -117,7 +120,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="contact_number" class="block text-sm font-medium text-gray-700">Contact Number</label>
                                 <input
                                     id="contact_number"
@@ -128,7 +131,7 @@
                                 >
                             </div>
 
-                            <div>
+                            <div class="field-stack">
                                 <label for="joined_at" class="block text-sm font-medium text-gray-700">Joined Date</label>
                                 <input
                                     id="joined_at"
@@ -139,7 +142,7 @@
                                 >
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div class="field-stack md:col-span-2">
                                 <label for="address" class="block text-sm font-medium text-gray-700">Address</label>
                                 <textarea
                                     id="address"
@@ -149,7 +152,7 @@
                                 >{{ old('address') }}</textarea>
                             </div>
 
-                            <div class="md:col-span-2">
+                            <div class="field-stack md:col-span-2">
                                 <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
                                 <textarea
                                     id="notes"
@@ -160,14 +163,14 @@
                             </div>
                         </div>
 
-                        <div class="mt-6 flex items-center gap-4 border-t pt-4">
+                        <div class="mt-8 flex flex-wrap items-center gap-3 border-t border-slate-800 pt-5">
                             <x-primary-button>
                                 Save Member
                             </x-primary-button>
 
                             <a
                                 href="{{ route('members.index') }}"
-                                class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-widest text-gray-700 shadow-sm transition hover:bg-gray-50"
+                                class="btn-secondary"
                             >
                                 Cancel
                             </a>

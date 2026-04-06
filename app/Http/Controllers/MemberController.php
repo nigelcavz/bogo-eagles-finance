@@ -52,6 +52,21 @@ class MemberController extends Controller
         return view('members.edit', compact('member'));
     }
 
+    public function show(Member $member): View
+    {
+        $contributions = $member->contributions()
+            ->with(['category', 'creator', 'coverages'])
+            ->latest('payment_date')
+            ->latest('id')
+            ->paginate(10);
+
+        $activeContributionTotal = $member->contributions()
+            ->where('status', 'active')
+            ->sum('amount');
+
+        return view('members.show', compact('member', 'contributions', 'activeContributionTotal'));
+    }
+
     public function update(Request $request, Member $member): RedirectResponse
     {
         $validated = $request->validate([

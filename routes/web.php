@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ContributionCategoryController;
+use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -29,6 +31,22 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
         Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
+        Route::get('/members/{member}', [MemberController::class, 'show'])->name('members.show');
+
+        Route::get('/contribution-categories', [ContributionCategoryController::class, 'index'])
+            ->name('contribution-categories.index');
+        Route::post('/contribution-categories', [ContributionCategoryController::class, 'store'])
+            ->name('contribution-categories.store');
+        Route::get('/contribution-categories/{contributionCategory}/edit', [ContributionCategoryController::class, 'edit'])
+            ->name('contribution-categories.edit');
+        Route::put('/contribution-categories/{contributionCategory}', [ContributionCategoryController::class, 'update'])
+            ->name('contribution-categories.update');
+
+        Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
+        Route::get('/contributions/create', [ContributionController::class, 'create'])->name('contributions.create');
+        Route::post('/contributions', [ContributionController::class, 'store'])->name('contributions.store');
+        Route::patch('/contributions/{contribution}/void', [ContributionController::class, 'void'])
+            ->name('contributions.void');
     });
 
     Route::middleware(['role:member'])->group(function () {

@@ -47,6 +47,15 @@
             @endif
         </div>
 
+        <div>
+            <x-input-label :value="__('Role')" />
+            <div class="mt-1 flex min-h-10 items-center rounded-md border border-slate-700 bg-slate-900/90 px-3 text-sm font-medium text-slate-100">
+                <span class="inline-flex items-center rounded-full border border-sky-500/30 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-sky-200">
+                    {{ $user->role ? \Illuminate\Support\Str::headline($user->role) : __('Not Assigned') }}
+                </span>
+            </div>
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

@@ -1,3 +1,218 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    html {
+        color-scheme: dark;
+    }
+
+    body {
+        @apply bg-slate-950 text-slate-100;
+    }
+
+    .dark .bg-gray-100 {
+        @apply bg-slate-950;
+    }
+
+    .dark .bg-gray-50 {
+        @apply bg-slate-900/70;
+    }
+
+    .dark .bg-white {
+        @apply bg-slate-900 text-slate-100;
+    }
+
+    .dark .text-gray-900 {
+        @apply text-slate-100;
+    }
+
+    .dark .text-gray-800 {
+        @apply text-slate-100;
+    }
+
+    .dark .text-gray-700 {
+        @apply text-slate-200;
+    }
+
+    .dark .text-gray-600 {
+        @apply text-slate-300;
+    }
+
+    .dark .text-gray-500 {
+        @apply text-slate-400;
+    }
+
+    .dark .border-gray-100 {
+        @apply border-slate-800;
+    }
+
+    .dark .border-gray-200 {
+        @apply border-slate-800;
+    }
+
+    .dark .border-gray-300 {
+        @apply border-slate-700;
+    }
+
+    .dark input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    .dark select,
+    .dark textarea {
+        @apply border-slate-700 bg-slate-900 text-slate-100 placeholder-slate-500;
+    }
+
+    .dark input:not([type='checkbox']):not([type='radio']):not([type='range']):focus,
+    .dark select:focus,
+    .dark textarea:focus {
+        @apply border-sky-500 ring-sky-500;
+    }
+
+    .dark table {
+        @apply text-slate-200;
+    }
+
+    .dark thead {
+        @apply bg-slate-800/90;
+    }
+
+    .dark tbody tr {
+        @apply border-slate-800;
+    }
+}
+
+@layer components {
+    .page-shell {
+        @apply py-8 sm:py-10;
+    }
+
+    .page-content {
+        @apply mx-auto space-y-6 px-4 sm:px-6 lg:px-8;
+    }
+
+    .section-heading {
+        @apply text-xl font-semibold tracking-tight text-slate-100;
+    }
+
+    .section-subheading {
+        @apply mt-1 text-sm text-slate-400;
+    }
+
+    .app-panel {
+        @apply rounded-2xl border border-slate-800/80 bg-slate-900/95 shadow-lg shadow-slate-950/35;
+    }
+
+    .app-panel-muted {
+        @apply rounded-2xl border border-slate-800/70 bg-slate-900/70 shadow-md shadow-slate-950/20;
+    }
+
+    .panel-header {
+        @apply flex items-center justify-between border-b border-slate-800/80 px-6 py-4;
+    }
+
+    .panel-body {
+        @apply p-6;
+    }
+
+    .form-grid {
+        @apply grid grid-cols-1 gap-5 md:grid-cols-2;
+    }
+
+    .field-stack {
+        @apply space-y-1.5;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center rounded-md border border-sky-400/40 bg-sky-500 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-slate-950 shadow-sm transition duration-150 ease-in-out hover:bg-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-300 focus:ring-offset-2 focus:ring-offset-slate-950 active:bg-sky-600;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-slate-200 shadow-sm transition duration-150 ease-in-out hover:border-slate-600 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-slate-950;
+    }
+
+    .btn-secondary-accent {
+        @apply inline-flex items-center rounded-md border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-sky-200 shadow-sm transition duration-150 ease-in-out hover:bg-sky-500/20 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2 focus:ring-offset-slate-950;
+    }
+
+    .status-badge {
+        @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide;
+    }
+
+    .status-active {
+        @apply border-emerald-500/30 bg-emerald-500/15 text-emerald-200;
+    }
+
+    .status-inactive {
+        @apply border-slate-600 bg-slate-700/40 text-slate-300;
+    }
+
+    .status-suspended {
+        @apply border-amber-500/30 bg-amber-500/15 text-amber-200;
+    }
+
+    .data-table {
+        @apply min-w-full overflow-hidden rounded-lg border border-slate-800/90 text-sm text-slate-200;
+    }
+
+    .data-table thead {
+        @apply bg-slate-800 text-slate-100;
+    }
+
+    .data-table th {
+        @apply border-b border-slate-700/80 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-300;
+    }
+
+    .data-table td {
+        @apply border-t border-slate-800/80 px-4 py-3 align-middle text-slate-200;
+    }
+
+    .data-table tbody tr {
+        @apply bg-slate-900/80 transition-colors duration-150;
+    }
+
+    .data-table tbody tr:nth-child(even) {
+        @apply bg-slate-900;
+    }
+
+    .data-table tbody tr:hover {
+        @apply bg-slate-800/80;
+    }
+
+    .dark .shadow-sm,
+    .dark .shadow,
+    .dark .shadow-md,
+    .dark .shadow-lg {
+        box-shadow: 0 18px 40px rgba(2, 6, 23, 0.35);
+    }
+
+    .dark .bg-green-100 {
+        @apply border border-emerald-900/60 bg-emerald-950/60;
+    }
+
+    .dark .text-green-800 {
+        @apply text-emerald-200;
+    }
+
+    .dark .bg-red-100 {
+        @apply border border-red-900/60 bg-red-950/50;
+    }
+
+    .dark .text-red-800 {
+        @apply text-red-200;
+    }
+
+    .dark .bg-yellow-100 {
+        @apply border border-amber-900/60 bg-amber-950/50;
+    }
+
+    .dark .text-yellow-900 {
+        @apply text-amber-200;
+    }
+
+    .dark .hover\:bg-gray-50:hover {
+        @apply bg-slate-800;
+    }
+
+    .dark .hover\:bg-gray-100:hover {
+        @apply bg-slate-800;
+    }
+}
