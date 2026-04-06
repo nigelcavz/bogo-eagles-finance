@@ -3,15 +3,15 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Contributions
+                    Contributions Overview
                 </h2>
                 <p class="mt-1 text-sm text-gray-600">
-                    View, filter, and void contribution records without deleting audit history.
+                    Navigate by contribution type, monitor audit-friendly records, and open the monthly dues tracker.
                 </p>
             </div>
 
             <a
-                href="{{ route('contributions.create') }}"
+                href="{{ route('contributions.create', ['back' => 'index']) }}"
                 class="inline-flex items-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-xs font-semibold uppercase tracking-widest text-white shadow-sm transition hover:bg-indigo-700"
             >
                 Record Contribution
@@ -27,6 +27,12 @@
                 </div>
             @endif
 
+            @if (session('error'))
+                <div class="rounded-md bg-red-100 p-4 text-red-800">
+                    {{ session('error') }}
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="rounded-md bg-red-100 p-4 text-red-800">
                     <p class="font-semibold">Please fix the following errors:</p>
@@ -37,6 +43,35 @@
                     </ul>
                 </div>
             @endif
+
+            <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+                @foreach ($typePages as $typePage)
+                    <a href="{{ $typePage['route'] }}" class="app-panel-muted block p-5 transition duration-150 ease-in-out hover:border-slate-700 hover:bg-slate-900/90">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-100">{{ $typePage['category']->name }}</p>
+                                <p class="mt-2 text-sm text-slate-400">
+                                    {{ $typePage['category']->requiresMonthlyCoverage() ? 'Open the dedicated tracker view built from covered months.' : 'Open the contribution list for this specific payment type.' }}
+                                </p>
+                            </div>
+                            <span class="status-badge {{ $typePage['category']->requiresMonthlyCoverage() ? 'border-sky-500/30 bg-sky-500/15 text-sky-200' : 'status-inactive' }}">
+                                {{ $typePage['category']->requiresMonthlyCoverage() ? 'Tracker' : 'List' }}
+                            </span>
+                        </div>
+
+                        <div class="mt-4 flex items-center justify-between border-t border-slate-800/80 pt-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Active Records</p>
+                                <p class="mt-1 text-lg font-semibold text-slate-100">{{ $typePage['active_count'] }}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Active Total</p>
+                                <p class="mt-1 text-lg font-semibold text-sky-200">{{ number_format($typePage['active_total'], 2) }}</p>
+                            </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="rounded-lg bg-white p-5 shadow-sm">
@@ -109,6 +144,12 @@
             </div>
 
             <div class="bg-white p-6 shadow-sm sm:rounded-lg">
+                <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">All Contribution Records</h3>
+                        <p class="text-sm text-gray-600">This overall list is useful for audit review across all contribution types.</p>
+                    </div>
+                </div>
                 @if ($contributions->count())
                     <div class="overflow-x-auto">
                         <table class="min-w-full border border-gray-200 text-sm">
@@ -154,18 +195,30 @@
                                         </td>
                                         <td class="border px-4 py-2 align-top">
                                             @if ($contribution->status === 'active')
-                                                <form method="POST" action="{{ route('contributions.void', $contribution) }}" class="space-y-2">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <textarea name="void_reason" rows="2" class="block w-full rounded-md border-gray-300 text-sm shadow-sm" placeholder="Reason for voiding" required></textarea>
-                                                    <button
-                                                        type="submit"
-                                                        class="inline-flex items-center rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-700 shadow-sm transition hover:bg-red-100"
-                                                        onclick="return confirm('Void this contribution? The record will remain in history.');"
+                                                <div class="flex flex-wrap gap-2">
+                                                    @if ($contribution->coverages->isEmpty() && ! $contribution->category->requiresMonthlyCoverage())
+                                                        <a href="{{ route('contributions.edit', $contribution) }}" class="btn-secondary-accent">
+                                                            Edit
+                                                        </a>
+                                                    @endif
+
+                                                    <form
+                                                        method="POST"
+                                                        action="{{ route('contributions.void', $contribution) }}"
+                                                        onsubmit="const reason = prompt('Reason for voiding this contribution:'); if (!reason) { return false; } this.querySelector('input[name=void_reason]').value = reason;"
                                                     >
-                                                        Void
-                                                    </button>
-                                                </form>
+                                                        @csrf
+                                                        @method('PATCH')
+                                                        <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                                        <input type="hidden" name="void_reason">
+                                                        <button
+                                                            type="submit"
+                                                            class="inline-flex items-center rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-700 shadow-sm transition hover:bg-red-100"
+                                                        >
+                                                            Void
+                                                        </button>
+                                                    </form>
+                                                </div>
                                             @else
                                                 <span class="text-xs text-gray-500">Already voided</span>
                                             @endif

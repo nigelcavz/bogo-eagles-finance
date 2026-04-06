@@ -43,8 +43,16 @@ Route::middleware(['auth'])->group(function () {
             ->name('contribution-categories.update');
 
         Route::get('/contributions', [ContributionController::class, 'index'])->name('contributions.index');
+        Route::get('/contributions/monthly-availability', [ContributionController::class, 'monthlyAvailability'])
+            ->name('contributions.monthly-availability');
+        Route::get('/contributions/type/{type}', [ContributionController::class, 'showType'])
+            ->name('contributions.types.show');
         Route::get('/contributions/create', [ContributionController::class, 'create'])->name('contributions.create');
         Route::post('/contributions', [ContributionController::class, 'store'])->name('contributions.store');
+        Route::get('/contributions/{contribution}/edit', [ContributionController::class, 'edit'])
+            ->name('contributions.edit');
+        Route::put('/contributions/{contribution}', [ContributionController::class, 'update'])
+            ->name('contributions.update');
         Route::patch('/contributions/{contribution}/void', [ContributionController::class, 'void'])
             ->name('contributions.void');
     });

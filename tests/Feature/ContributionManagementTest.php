@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Contribution;
 use App\Models\ContributionCategory;
+use App\Models\ContributionCoverage;
 use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -45,6 +46,7 @@ class ContributionManagementTest extends TestCase
         $user = User::factory()->role('treasurer')->create();
         $member = Member::factory()->create();
         $category = ContributionCategory::factory()->create([
+            'name' => 'Voluntary Contributions',
             'default_amount' => 1000,
         ]);
 
@@ -58,7 +60,7 @@ class ContributionManagementTest extends TestCase
             'notes' => 'Paid in person',
         ]);
 
-        $response->assertRedirect(route('contributions.create'));
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'voluntary-contributions']));
 
         $this->assertDatabaseHas('contributions', [
             'member_id' => $member->id,
@@ -102,7 +104,7 @@ class ContributionManagementTest extends TestCase
             'notes' => 'Collected during meeting',
         ]);
 
-        $response->assertRedirect(route('contributions.create'));
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'other']));
 
         $this->assertDatabaseHas('contributions', [
             'member_id' => $member->id,
@@ -153,7 +155,7 @@ class ContributionManagementTest extends TestCase
         $user = User::factory()->role('treasurer')->create();
         $memberA = Member::factory()->create(['first_name' => 'Alice', 'last_name' => 'Rivera']);
         $memberB = Member::factory()->create(['first_name' => 'Ben', 'last_name' => 'Santos']);
-        $category = ContributionCategory::factory()->create(['name' => 'Monthly Dues']);
+        $category = ContributionCategory::factory()->create(['name' => 'Monthly Dues/Contributions']);
 
         $contributionA = Contribution::create([
             'member_id' => $memberA->id,
@@ -210,5 +212,204 @@ class ContributionManagementTest extends TestCase
         $response->assertSessionHasErrors('member_id');
 
         $this->assertDatabaseCount('contributions', 0);
+    }
+
+    public function test_monthly_dues_store_creates_coverage_rows_and_redirects_to_tracker(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+        ]);
+
+        $response = $this->actingAs($user)->post(route('contributions.store'), [
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 1500.00,
+            'payment_date' => '2026-04-10',
+            'coverage_year' => 2026,
+            'coverage_months' => [1, 2, 3],
+            'reference_number' => 'MTH-2026-001',
+        ]);
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
+
+        $contribution = Contribution::firstOrFail();
+
+        $this->assertSame('monthly', $contribution->coverage_type);
+
+        $this->assertDatabaseHas('contribution_coverages', [
+            'contribution_id' => $contribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 1,
+        ]);
+
+        $this->assertDatabaseHas('contribution_coverages', [
+            'contribution_id' => $contribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 3,
+        ]);
+    }
+
+    public function test_duplicate_monthly_coverage_is_blocked_without_partial_records(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+        ]);
+
+        $existingContribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 500.00,
+            'payment_date' => '2026-01-10',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        ContributionCoverage::create([
+            'contribution_id' => $existingContribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 2,
+            'coverage_label' => 'Feb 2026',
+        ]);
+
+        $response = $this->from(route('contributions.create'))
+            ->actingAs($user)
+            ->post(route('contributions.store'), [
+                'member_id' => $member->id,
+                'contribution_category_id' => $category->id,
+                'amount' => 1000.00,
+                'payment_date' => '2026-02-10',
+                'coverage_year' => 2026,
+                'coverage_months' => [2, 3],
+            ]);
+
+        $response->assertRedirect(route('contributions.create'));
+        $response->assertSessionHasErrors('coverage_months');
+
+        $this->assertDatabaseCount('contributions', 1);
+        $this->assertDatabaseCount('contribution_coverages', 1);
+    }
+
+    public function test_standard_contribution_can_be_updated_without_changing_member_or_category(): void
+    {
+        $user = User::factory()->role('admin')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Voluntary Contributions',
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 400.00,
+            'payment_date' => '2026-04-01',
+            'reference_number' => 'OLD-REF',
+            'notes' => 'Original notes',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        $response = $this->actingAs($user)->put(route('contributions.update', $contribution), [
+            'amount' => 650.00,
+            'payment_date' => '2026-04-15',
+            'payment_type' => 'bank transfer',
+            'reference_number' => 'NEW-REF',
+            'notes' => 'Updated notes',
+        ]);
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'voluntary-contributions']));
+
+        $this->assertDatabaseHas('contributions', [
+            'id' => $contribution->id,
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => '650.00',
+            'payment_type' => 'bank transfer',
+            'reference_number' => 'NEW-REF',
+            'updated_by' => $user->id,
+        ]);
+    }
+
+    public function test_monthly_dues_entries_with_coverages_must_be_corrected_by_void_and_reentry(): void
+    {
+        $user = User::factory()->role('admin')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 600.00,
+            'payment_date' => '2026-01-05',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        ContributionCoverage::create([
+            'contribution_id' => $contribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 1,
+            'coverage_label' => 'Jan 2026',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contributions.edit', $contribution));
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
+    }
+
+    public function test_monthly_availability_endpoint_returns_already_covered_months(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 1200.00,
+            'payment_date' => '2026-02-01',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        ContributionCoverage::create([
+            'contribution_id' => $contribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 1,
+            'coverage_label' => 'Jan 2026',
+        ]);
+
+        ContributionCoverage::create([
+            'contribution_id' => $contribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 4,
+            'coverage_label' => 'Apr 2026',
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('contributions.monthly-availability', [
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'contribution_category_id' => $category->id,
+        ]));
+
+        $response->assertOk()->assertExactJson([
+            'covered_months' => [1, 4],
+        ]);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\ContributionCategory;
+use App\Models\ContributionCoverage;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -35,6 +36,9 @@ class StoreContributionRequest extends FormRequest
             'reference_number' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
             'other_description' => ['nullable', 'string', 'max:1000'],
+            'coverage_year' => ['nullable', 'integer', 'min:2000', 'max:2100'],
+            'coverage_months' => ['nullable', 'array'],
+            'coverage_months.*' => ['integer', 'between:1,12', 'distinct'],
         ];
     }
 
@@ -53,10 +57,61 @@ class StoreContributionRequest extends FormRequest
                 return;
             }
 
-            if (strcasecmp($category->name, 'Other') === 0 && ! $this->filled('other_description')) {
+            if ($category->requiresOtherDescription() && ! $this->filled('other_description')) {
                 $validator->errors()->add(
                     'other_description',
                     'Please provide an additional description when the Other category is selected.'
+                );
+            }
+
+            if (! $category->requiresMonthlyCoverage()) {
+                return;
+            }
+
+            $year = $this->input('coverage_year');
+            $months = collect($this->input('coverage_months', []))
+                ->filter(fn ($month) => $month !== null && $month !== '')
+                ->map(fn ($month) => (int) $month)
+                ->values();
+
+            if (blank($year)) {
+                $validator->errors()->add(
+                    'coverage_year',
+                    'Please select the coverage year for Monthly Dues/Contributions.'
+                );
+            }
+
+            if ($months->isEmpty()) {
+                $validator->errors()->add(
+                    'coverage_months',
+                    'Please select at least one covered month for Monthly Dues/Contributions.'
+                );
+
+                return;
+            }
+
+            if ($validator->errors()->hasAny(['member_id', 'coverage_year', 'coverage_months'])) {
+                return;
+            }
+
+            $duplicateMonths = ContributionCoverage::query()
+                ->join('contributions', 'contributions.id', '=', 'contribution_coverages.contribution_id')
+                ->where('contributions.status', 'active')
+                ->where('contributions.contribution_category_id', $category->id)
+                ->where('contribution_coverages.member_id', $this->integer('member_id'))
+                ->where('contribution_coverages.coverage_year', (int) $year)
+                ->whereIn('contribution_coverages.coverage_month', $months->all())
+                ->pluck('contribution_coverages.coverage_month')
+                ->unique()
+                ->sort()
+                ->values();
+
+            if ($duplicateMonths->isNotEmpty()) {
+                $validator->errors()->add(
+                    'coverage_months',
+                    'The selected member already has active monthly dues coverage for: ' .
+                    $duplicateMonths->map(fn (int $month) => now()->setMonth($month)->startOfMonth()->format('M'))->implode(', ') .
+                    '.'
                 );
             }
         });
