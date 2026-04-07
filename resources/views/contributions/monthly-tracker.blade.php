@@ -10,7 +10,7 @@
                     {{ $category->name }} Tracker
                 </h2>
                 <p class="mt-1 text-sm text-gray-600">
-                    One row per member, using actual active coverage rows to show which months are already paid for {{ $year }}.
+                    One row per member, using actual posted coverage rows to show which months are already paid for {{ $year }}.
                 </p>
             </div>
 
@@ -43,7 +43,7 @@
 
             @if ($duplicateMemberCount > 0)
                 <div class="rounded-md bg-yellow-100 p-4 text-yellow-900">
-                    {{ $duplicateMemberCount }} member {{ \Illuminate\Support\Str::plural('row', $duplicateMemberCount) }} currently show duplicate active month coverage in {{ $year }}. This usually means older records were saved before duplicate protection was enforced.
+                    {{ $duplicateMemberCount }} member {{ \Illuminate\Support\Str::plural('row', $duplicateMemberCount) }} currently show duplicate posted month coverage in {{ $year }}. This usually means older records were saved before duplicate protection was enforced.
                 </div>
             @endif
 
@@ -78,68 +78,73 @@
             <div class="app-panel">
                 <div class="panel-body">
                     <div class="overflow-x-auto">
-                        <table class="data-table min-w-[1400px]">
+                        <table class="w-full table-fixed overflow-hidden rounded-lg border border-slate-800/90 text-sm text-slate-200">
                             <thead>
                                 <tr>
-                                    <th>Member</th>
+                                    <th class="w-56 border-b border-slate-700/80 bg-slate-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-300">Member</th>
                                     @foreach ($monthLabels as $monthLabel)
-                                        <th>{{ $monthLabel }}</th>
+                                        <th class="w-12 border-b border-slate-700/80 bg-slate-800 px-1.5 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-300">{{ $monthLabel }}</th>
                                     @endforeach
-                                    <th>Total Paid</th>
-                                    <th>Remaining</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="w-60 border-b border-slate-700/80 bg-slate-800 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-300">Summary</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($trackerRows as $row)
-                                    <tr>
-                                        <td>
+                                    <tr class="border-t border-slate-800/80 bg-slate-900/80 transition-colors duration-150 even:bg-slate-900 hover:bg-slate-800/80">
+                                        <td class="px-4 py-3 align-middle">
                                             <div class="font-medium text-slate-100">{{ $row['member']->full_name }}</div>
                                             @if ($row['member']->member_code)
                                                 <div class="text-xs text-slate-400">{{ $row['member']->member_code }}</div>
                                             @endif
                                         </td>
                                         @foreach ($row['months'] as $month)
-                                            <td class="text-center">
+                                            <td class="px-1 py-3 text-center align-middle">
                                                 @if ($month['duplicate'])
-                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-amber-200">
+                                                    <span class="inline-flex min-w-[2.6rem] items-center justify-center whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-wide text-amber-200">
                                                         {{ $month['count'] }}x
                                                     </span>
                                                 @elseif ($month['covered'])
-                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-emerald-200">
-                                                        Paid
+                                                    <span class="inline-flex min-w-[2.6rem] items-center justify-center whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-wide text-emerald-200">
+                                                        OK
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-slate-700/80 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-slate-400">
+                                                    <span class="inline-flex min-w-[2.6rem] items-center justify-center whitespace-nowrap rounded-full border border-slate-700/80 bg-slate-800/70 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-wide text-slate-400">
                                                         --
                                                     </span>
                                                 @endif
                                             </td>
                                         @endforeach
-                                        <td class="font-semibold text-slate-100">{{ number_format($row['total_paid'], 2) }}</td>
-                                        <td>
-                                            <span class="text-sm text-slate-200">{{ $row['unpaid_month_count'] }} months</span>
-                                        </td>
-                                        <td>
-                                            @if ($row['status'] === 'fully_paid')
-                                                <span class="status-badge status-active">Fully Paid</span>
-                                            @elseif ($row['status'] === 'partial')
-                                                <span class="status-badge border-amber-500/30 bg-amber-500/15 text-amber-200">Partial</span>
-                                            @else
-                                                <span class="status-badge status-inactive">Unpaid</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="flex flex-wrap gap-2">
-                                                @if ($canManage)
-                                                    <a href="{{ route('contributions.create', ['member_id' => $row['member']->id, 'contribution_category_id' => $category->id, 'back' => 'type', 'type' => $type, 'year' => $year]) }}" class="btn-secondary-accent">
-                                                        Record
+                                        <td class="px-4 py-3 align-middle">
+                                            <div class="flex items-start justify-between gap-3">
+                                                <div class="min-w-0">
+                                                    <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-400">
+                                                        <span>Total Paid</span>
+                                                        <span class="text-right font-semibold text-slate-100">@money($row['total_paid'])</span>
+                                                        <span>Remaining</span>
+                                                        <span class="text-right text-slate-200">{{ $row['unpaid_month_count'] }} months</span>
+                                                    </div>
+
+                                                    <div class="mt-3">
+                                                        @if ($row['status'] === 'fully_paid')
+                                                            <span class="status-badge status-active">Fully Paid</span>
+                                                        @elseif ($row['status'] === 'partial')
+                                                            <span class="status-badge border-amber-500/30 bg-amber-500/15 text-amber-200">Partial</span>
+                                                        @else
+                                                            <span class="status-badge status-inactive">Unpaid</span>
+                                                        @endif
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex shrink-0 flex-col gap-2">
+                                                    @if ($canManage)
+                                                        <a href="{{ route('contributions.create', ['member_id' => $row['member']->id, 'contribution_category_id' => $category->id, 'back' => 'type', 'type' => $type, 'year' => $year]) }}" class="btn-secondary-accent justify-center">
+                                                            Record
+                                                        </a>
+                                                    @endif
+                                                    <a href="{{ route('members.show', $row['member']) }}" class="btn-secondary justify-center">
+                                                        History
                                                     </a>
-                                                @endif
-                                                <a href="{{ route('members.show', $row['member']) }}" class="btn-secondary">
-                                                    History
-                                                </a>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -149,7 +154,7 @@
                     </div>
 
                     <p class="mt-4 text-xs text-slate-400">
-                        Tracker cells are derived from active rows in <code>contribution_coverages</code>. Voided contribution payments are excluded from this yearly view.
+                        Tracker cells are derived from posted rows in <code>contribution_coverages</code>. Voided contribution payments are excluded from this yearly view.
                     </p>
                 </div>
             </div>

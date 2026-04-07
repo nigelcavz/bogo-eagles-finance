@@ -27,6 +27,21 @@
                         @csrf
 
                         <div class="form-grid">
+                            <div class="field-stack md:col-span-2">
+                                <label for="email" class="block text-sm font-medium text-gray-700">Login Email</label>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value="{{ old('email') }}"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                                    required
+                                >
+                                <p class="text-xs text-gray-500">
+                                    A linked member login account will be created automatically using this email address.
+                                </p>
+                            </div>
+
                             <div class="field-stack">
                                 <label for="member_code" class="block text-sm font-medium text-gray-700">Member Code</label>
                                 <input

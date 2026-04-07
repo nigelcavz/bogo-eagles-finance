@@ -61,7 +61,7 @@
                             <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                             <select id="status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                                 <option value="all" @selected($status === 'all')>All Records</option>
-                                <option value="active" @selected($status === 'active')>Active Only</option>
+                                <option value="active" @selected($status === 'active')>Posted Only</option>
                                 <option value="voided" @selected($status === 'voided')>Voided Only</option>
                             </select>
                         </div>
@@ -104,7 +104,7 @@
                                                     {{ $contribution->member->full_name }}
                                                 </a>
                                             </td>
-                                            <td class="font-semibold text-slate-100">{{ number_format($contribution->amount, 2) }}</td>
+                                            <td class="font-semibold text-slate-100">@money($contribution->amount)</td>
                                             <td>
                                                 <div class="space-y-1">
                                                     <p class="text-sm text-slate-200">{{ $contribution->reference_number ?: '--' }}</p>

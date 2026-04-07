@@ -16,20 +16,21 @@
     </head>
     <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     <body class="bg-slate-950 font-sans text-slate-100 antialiased">
-        <div class="flex min-h-screen flex-col bg-slate-950 text-slate-100">
+        <div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_34%),linear-gradient(180deg,_rgba(15,23,42,0.98)_0%,_rgba(15,23,42,0.96)_18%,_rgba(2,6,23,1)_42%)] text-slate-100">
             @include('layouts.navigation')
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="border-b border-slate-800/80 bg-slate-900/80 shadow-lg shadow-slate-950/30 backdrop-blur">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                <header class="relative overflow-hidden bg-transparent">
+                    <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 via-slate-900/10 to-transparent"></div>
+                    <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
                 </header>
             @endisset
 
             <!-- Page Content -->
-            <main class="flex-1 pb-10">
+            <main class="pb-10">
                 {{ $slot }}
             </main>
 

@@ -26,6 +26,25 @@
                 </div>
             @endif
 
+            @if (session('new_member_account'))
+                @php($account = session('new_member_account'))
+                <div class="mb-4 rounded-md bg-yellow-100 p-4 text-yellow-900">
+                    <p class="font-semibold">Temporary member account password</p>
+                    <p class="mt-1 text-sm">
+                        {{ $account['member_name'] }} can sign in with <span class="font-medium">{{ $account['email'] }}</span>.
+                    </p>
+                    <p class="mt-3">
+                        Temporary password:
+                        <span class="rounded-md border border-amber-700/40 bg-amber-950/40 px-2 py-1 font-mono text-sm text-amber-100">
+                            {{ $account['temporary_password'] }}
+                        </span>
+                    </p>
+                    <p class="mt-2 text-xs">
+                        This password is shown only once. The member will be required to change it on first login.
+                    </p>
+                </div>
+            @endif
+
             <div class="app-panel">
                 <div class="panel-header">
                     <div>
@@ -40,6 +59,7 @@
                                 <thead>
                                     <tr>
                                         <th>Member Code</th>
+                                        <th>Club Position</th>
                                         <th>Full Name</th>
                                         <th>Contact Number</th>
                                         <th>Status</th>
@@ -50,11 +70,14 @@
                                 <tbody>
                                     @foreach ($members as $member)
                                         <tr>
-                                            <td class="border px-4 py-2">{{ $member->member_code ?? '—' }}</td>
+                                            <td class="border px-4 py-2">{{ $member->member_code ?? '--' }}</td>
+                                            <td class="border px-4 py-2">{{ $member->club_position ?? 'Member' }}</td>
                                             <td>
-                                                <div class="font-semibold text-slate-100">{{ $member->full_name }}</div>
+                                                <a href="{{ route('members.show', $member) }}" class="font-semibold text-sky-200 transition duration-150 ease-in-out hover:text-sky-100">
+                                                    {{ $member->full_name }}
+                                                </a>
                                             </td>
-                                            <td class="border px-4 py-2">{{ $member->contact_number ?? '—' }}</td>
+                                            <td class="border px-4 py-2">{{ $member->contact_number ?? '--' }}</td>
                                             <td>
                                                 <span @class([
                                                     'status-badge',
@@ -66,7 +89,7 @@
                                                 </span>
                                             </td>
                                             <td class="border px-4 py-2">
-                                                {{ $member->joined_at ? $member->joined_at->format('M d, Y') : '—' }}
+                                                {{ $member->joined_at ? $member->joined_at->format('M d, Y') : '--' }}
                                             </td>
                                             <td class="text-slate-300">
                                                 <div class="flex flex-wrap gap-2">

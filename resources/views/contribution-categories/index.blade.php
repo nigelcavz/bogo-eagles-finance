@@ -86,7 +86,7 @@
                                                 <div class="text-xs text-gray-500">{{ $category->description ?: 'No description' }}</div>
                                             </td>
                                             <td class="border px-4 py-2">
-                                                {{ $category->default_amount ? number_format($category->default_amount, 2) : '--' }}
+                                    {{ $category->default_amount ? \App\Support\Currency::format($category->default_amount) : '--' }}
                                             </td>
                                             <td class="border px-4 py-2">
                                                 <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $category->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700' }}">

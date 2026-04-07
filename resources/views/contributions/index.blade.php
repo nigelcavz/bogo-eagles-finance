@@ -78,12 +78,12 @@
 
                         <div class="mt-4 flex items-center justify-between border-t border-slate-800/80 pt-4">
                             <div>
-                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Active Records</p>
+                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Posted Records</p>
                                 <p class="mt-1 text-lg font-semibold text-slate-100">{{ $typePage['active_count'] }}</p>
                             </div>
                             <div class="text-right">
-                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Active Total</p>
-                                <p class="mt-1 text-lg font-semibold text-sky-200">{{ number_format($typePage['active_total'], 2) }}</p>
+                                <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Posted Total</p>
+                                <p class="mt-1 text-lg font-semibold text-sky-200">@money($typePage['active_total'])</p>
                             </div>
                         </div>
                     </a>
@@ -92,12 +92,12 @@
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="app-panel-muted p-5">
-                    <p class="text-sm font-medium text-slate-400">Active Total</p>
-                    <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ number_format($activeTotal, 2) }}</p>
+                    <p class="text-sm font-medium text-slate-400">Posted Total</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-200">@money($activeTotal)</p>
                 </div>
                 <div class="app-panel-muted p-5">
                     <p class="text-sm font-medium text-slate-400">Voided Total</p>
-                    <p class="mt-2 text-2xl font-semibold text-red-200">{{ number_format($voidedTotal, 2) }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-red-200">@money($voidedTotal)</p>
                 </div>
             </div>
 
@@ -154,7 +154,7 @@
                                             </a>
                                         </td>
                                         <td>{{ $contribution->category->name }}</td>
-                                        <td class="{{ $contribution->status === 'voided' ? 'text-slate-300' : 'font-semibold text-sky-200' }}">{{ number_format($contribution->amount, 2) }}</td>
+                                        <td class="{{ $contribution->status === 'voided' ? 'text-slate-300' : 'font-semibold text-sky-200' }}">@money($contribution->amount)</td>
                                         <td>
                                             {{ $contribution->coverages->sortBy(fn ($coverage) => sprintf('%04d-%02d', $coverage->coverage_year, $coverage->coverage_month))->map(fn ($coverage) => sprintf('%04d-%02d', $coverage->coverage_year, $coverage->coverage_month))->implode(', ') }}
                                         </td>
@@ -162,7 +162,7 @@
                                         <td>
                                             <div>
                                                 <span class="status-badge {{ $contribution->status === 'voided' ? 'border-red-500/30 bg-red-500/15 text-red-200' : 'status-active' }}">
-                                                    {{ ucfirst($contribution->status) }}
+                                                    {{ $contribution->status === 'active' ? 'Posted' : ucfirst($contribution->status) }}
                                                 </span>
                                             </div>
                                             @if ($contribution->status === 'voided')
@@ -282,7 +282,7 @@
                     <label for="modal_status" class="block text-sm font-medium text-gray-700">Status</label>
                     <select id="modal_status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         <option value="all" @selected(request('status', 'all') === 'all')>All</option>
-                        <option value="active" @selected(request('status') === 'active')>Active</option>
+                        <option value="active" @selected(request('status') === 'active')>Posted</option>
                         <option value="voided" @selected(request('status') === 'voided')>Voided</option>
                     </select>
                 </div>

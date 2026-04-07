@@ -5,7 +5,9 @@
         </h2>
 
         <p class="mt-1 text-sm text-gray-600">
-            {{ __('Ensure your account is using a long, random password to stay secure.') }}
+            {{ $user->must_change_password
+                ? __('You must change your temporary password before you can continue using the system.')
+                : __('Ensure your account is using a long, random password to stay secure.') }}
         </p>
     </header>
 
@@ -13,11 +15,13 @@
         @csrf
         @method('put')
 
-        <div>
-            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
-            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
-        </div>
+        @unless ($user->must_change_password)
+            <div>
+                <x-input-label for="update_password_current_password" :value="__('Current Password')" />
+                <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+                <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+            </div>
+        @endunless
 
         <div>
             <x-input-label for="update_password_password" :value="__('New Password')" />
@@ -34,14 +38,14 @@
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 
-            @if (session('status') === 'password-updated')
+            @if (session('status') === 'password-updated' || session('password_change_completed'))
                 <p
                     x-data="{ show: true }"
                     x-show="show"
                     x-transition
                     x-init="setTimeout(() => show = false, 2000)"
                     class="text-sm text-gray-600"
-                >{{ __('Saved.') }}</p>
+                >{{ session('password_change_completed', __('Saved.')) }}</p>
             @endif
         </div>
     </form>

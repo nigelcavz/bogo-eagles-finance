@@ -5,13 +5,14 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'password.change'])->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
@@ -20,19 +21,25 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/admin-only', function () {
             return 'Admin access granted.';
         })->name('admin.only');
+
+        Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
+        Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}/role', [UserManagementController::class, 'update'])->name('users.update-role');
     });
 
-    Route::middleware(['role:admin,treasurer'])->group(function () {
-        Route::get('/finance-only', function () {
-            return 'Finance access granted.';
-        })->name('finance.only');
-
+    Route::middleware(['role:admin,president,treasurer'])->group(function () {
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::get('/members/create', [MemberController::class, 'create'])->name('members.create');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
         Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
         Route::get('/members/{member}', [MemberController::class, 'show'])->name('members.show');
+    });
+
+    Route::middleware(['role:admin,treasurer'])->group(function () {
+        Route::get('/finance-only', function () {
+            return 'Finance access granted.';
+        })->name('finance.only');
 
         Route::get('/contribution-categories', [ContributionCategoryController::class, 'index'])
             ->name('contribution-categories.index');
@@ -65,10 +72,13 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/expenses/{expense}/void', [ExpenseController::class, 'void'])->name('expenses.void');
     });
 
-    Route::middleware(['role:member'])->group(function () {
+    Route::middleware(['role:member,officer,president,treasurer'])->group(function () {
         Route::get('/member-only', function () {
             return 'Member access granted.';
         })->name('member.only');
+
+        Route::get('/my-member-profile', [MemberController::class, 'self'])
+            ->name('members.self');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

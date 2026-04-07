@@ -52,12 +52,12 @@
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="app-panel-muted p-5">
-                    <p class="text-sm font-medium text-slate-400">Active Expense Total</p>
-                    <p class="mt-2 text-2xl font-semibold text-emerald-200">{{ number_format($activeTotal, 2) }}</p>
+                    <p class="text-sm font-medium text-slate-400">Posted Expense Total</p>
+                    <p class="mt-2 text-2xl font-semibold text-emerald-200">@money($activeTotal)</p>
                 </div>
                 <div class="app-panel-muted p-5">
                     <p class="text-sm font-medium text-slate-400">Voided Expense Total</p>
-                    <p class="mt-2 text-2xl font-semibold text-red-200">{{ number_format($voidedTotal, 2) }}</p>
+                    <p class="mt-2 text-2xl font-semibold text-red-200">@money($voidedTotal)</p>
                 </div>
             </div>
 
@@ -116,7 +116,7 @@
                                                 <div class="font-medium text-slate-100">{{ $expense->category->name }}</div>
                                                 <div class="mt-1 text-xs text-slate-400">{{ $expense->payee_name }}</div>
                                             </td>
-                                            <td class="font-semibold text-sky-200">{{ number_format($expense->amount, 2) }}</td>
+                                            <td class="font-semibold text-sky-200">@money($expense->amount)</td>
                                             <td>
                                                 <div class="font-medium text-slate-100">{{ $expense->description }}</div>
                                                 @if ($expense->notes)
@@ -127,7 +127,7 @@
                                             <td>
                                                 <div>
                                                     <span class="status-badge {{ $expense->status === 'voided' ? 'border-red-500/30 bg-red-500/15 text-red-200' : 'status-active' }}">
-                                                        {{ ucfirst($expense->status) }}
+                                                        {{ $expense->status === 'active' ? 'Posted' : ucfirst($expense->status) }}
                                                     </span>
                                                 </div>
                                                 @if ($expense->status === 'voided')
@@ -230,7 +230,7 @@
                     <label for="modal_status" class="block text-sm font-medium text-gray-700">Status</label>
                     <select id="modal_status" name="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
                         <option value="all" @selected(request('status', 'all') === 'all')>All</option>
-                        <option value="active" @selected(request('status') === 'active')>Active</option>
+                        <option value="active" @selected(request('status') === 'active')>Posted</option>
                         <option value="voided" @selected(request('status') === 'voided')>Voided</option>
                     </select>
                 </div>

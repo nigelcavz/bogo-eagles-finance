@@ -16,6 +16,7 @@ class MemberFactory extends Factory
     {
         return [
             'member_code' => strtoupper(fake()->unique()->bothify('BEC-####')),
+            'club_position' => 'Member',
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'middle_name' => fake()->optional()->firstName(),

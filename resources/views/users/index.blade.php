@@ -1,0 +1,102 @@
+<x-app-layout>
+    <x-slot name="header">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <h2 class="section-heading">User Role Management</h2>
+                <p class="section-subheading">Review user accounts and update permission roles from one admin-only page.</p>
+            </div>
+        </div>
+    </x-slot>
+
+    <div class="page-shell">
+        <div class="page-content max-w-7xl">
+            @if (session('success'))
+                <div class="rounded-md bg-green-100 p-4 text-green-800">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            <div class="app-panel">
+                <div class="panel-header">
+                    <div>
+                        <h3 class="text-lg font-semibold text-slate-100">Accounts</h3>
+                        <p class="mt-1 text-sm text-slate-400">Changing a non-admin user's role also updates the linked member club position automatically.</p>
+                    </div>
+
+                    <form method="GET" action="{{ route('users.index') }}" class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                        <label for="search" class="sr-only">Search users by name</label>
+                        <input
+                            id="search"
+                            name="search"
+                            type="text"
+                            value="{{ $search }}"
+                            placeholder="Search by name"
+                            class="block w-full rounded-md border-gray-300 shadow-sm sm:w-72"
+                        >
+                        <div class="flex gap-2">
+                            <x-primary-button>Search</x-primary-button>
+                            @if ($search !== '')
+                                <a href="{{ route('users.index') }}" class="btn-secondary">Reset</a>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+
+                <div class="panel-body">
+                    @if ($users->count())
+                        <div class="overflow-x-auto">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Linked Member</th>
+                                        <th>Club Position</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach ($users as $managedUser)
+                                        <tr>
+                                            <td>
+                                                <div class="font-medium text-slate-100">{{ $managedUser->name }}</div>
+                                            </td>
+                                            <td>{{ $managedUser->email }}</td>
+                                            <td>
+                                                <span class="status-badge {{ $managedUser->role === 'admin' ? 'border-violet-500/30 bg-violet-500/15 text-violet-200' : 'border-sky-500/30 bg-sky-500/15 text-sky-200' }}">
+                                                    {{ \Illuminate\Support\Str::headline($managedUser->role) }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if ($managedUser->member)
+                                                    <a href="{{ route('members.show', $managedUser->member) }}" class="font-medium text-sky-300 transition hover:text-sky-200">
+                                                        {{ $managedUser->member->full_name }}
+                                                    </a>
+                                                @else
+                                                    <span class="text-slate-500">--</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ $managedUser->member?->club_position ?? '--' }}</td>
+                                            <td>
+                                                <a href="{{ route('users.edit', $managedUser) }}" class="btn-secondary-accent">
+                                                    Edit Role
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            {{ $users->links() }}
+                        </div>
+                    @else
+                        <p class="text-sm text-slate-400">No user accounts are available yet.</p>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>
