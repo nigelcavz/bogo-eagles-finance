@@ -92,6 +92,29 @@ class ActivityLog extends Model
         return Str::headline($this->action);
     }
 
+    public function dashboardSummary(): string
+    {
+        $actor = $this->user?->name ?? 'System';
+
+        return match ($this->action) {
+            'announcement_created' => $actor . ' created an announcement',
+            'announcement_updated' => $actor . ' updated an announcement',
+            'announcement_deleted' => $actor . ' deleted an announcement',
+            'event_created' => $actor . ' scheduled an event',
+            'expense_created' => $actor . ' recorded an expense',
+            'expense_voided' => $actor . ' voided an expense',
+            'contribution_created' => $actor . ' recorded a contribution',
+            'contribution_voided' => $actor . ' voided a contribution',
+            'member_account_created' => $actor . ' created a member account',
+            'member_deactivated' => $actor . ' set a member inactive',
+            'member_reactivated' => $actor . ' reactivated a member',
+            'user_role_updated' => $actor . ' updated a user role',
+            'user_account_deactivated' => $actor . ' deactivated an account',
+            'user_account_reactivated' => $actor . ' reactivated an account',
+            default => $actor . ' recorded ' . Str::lower($this->formattedAction()),
+        };
+    }
+
     private function formatAuditValue(mixed $value, ?string $field = null): string
     {
         if ($value === null || $value === '') {

@@ -13,6 +13,7 @@ class Announcement extends Model
     protected $fillable = [
         'title',
         'body',
+        'event_id',
         'visibility',
         'is_published',
         'published_at',
@@ -36,5 +37,10 @@ class Announcement extends Model
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function event(): BelongsTo
+    {
+        return $this->belongsTo(Event::class);
     }
 }

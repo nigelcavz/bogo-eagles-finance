@@ -17,6 +17,7 @@ class StoreAnnouncementRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string'],
+            'event_id' => ['nullable', 'integer', 'exists:events,id'],
             'visibility' => ['required', Rule::in(['all'])],
             'is_published' => ['nullable', 'boolean'],
         ];

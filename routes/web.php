@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AnnouncementController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserManagementController;
@@ -18,6 +19,7 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'password.change'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/calendar', [EventController::class, 'index'])->name('calendar.index');
 
     Route::middleware(['role:' . User::ROLE_ADMIN])->group(function () {
         Route::get('/admin-only', function () {
@@ -54,6 +56,11 @@ Route::middleware(['auth', 'password.change'])->group(function () {
         Route::get('/announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
         Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
         Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
+    });
+
+    Route::middleware(['role:' . implode(',', User::calendarManagerRoles())])->group(function () {
+        Route::get('/calendar/create', [EventController::class, 'create'])->name('calendar.create');
+        Route::post('/calendar', [EventController::class, 'store'])->name('calendar.store');
     });
 
     Route::middleware(['role:' . implode(',', User::financeViewerRoles())])->group(function () {

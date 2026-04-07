@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreContributionRequest;
 use App\Http\Requests\UpdateContributionRequest;
+use App\Models\ActivityLog;
 use App\Models\Contribution;
 use App\Models\ContributionCategory;
 use App\Models\ContributionCoverage;
@@ -222,6 +223,24 @@ class ContributionController extends Controller
                 }
             }
 
+            $this->logActivity(
+                $request,
+                'contribution_created',
+                $contribution->id,
+                'Contribution recorded.',
+                null,
+                [
+                    'member_id' => $contribution->member_id,
+                    'contribution_category_id' => $contribution->contribution_category_id,
+                    'amount' => $contribution->amount,
+                    'payment_date' => optional($contribution->payment_date)?->toDateString(),
+                    'reference_number' => $contribution->reference_number,
+                    'status' => $contribution->status,
+                    'coverage_year' => $validated['coverage_year'] ?? null,
+                    'coverage_months' => $validated['coverage_months'] ?? [],
+                ]
+            );
+
             return $contribution;
         });
 
@@ -266,13 +285,48 @@ class ContributionController extends Controller
                 ->with('success', 'Contribution was already voided.');
         }
 
-        $contribution->update([
-            'status' => 'voided',
-            'void_reason' => $validated['void_reason'],
-            'voided_at' => now(),
-            'voided_by' => $request->user()->id,
-            'updated_by' => $request->user()->id,
-        ]);
+        DB::transaction(function () use ($request, $contribution, $validated) {
+            $before = $contribution->only([
+                'member_id',
+                'contribution_category_id',
+                'amount',
+                'payment_date',
+                'reference_number',
+                'notes',
+                'status',
+                'void_reason',
+                'voided_at',
+                'voided_by',
+            ]);
+
+            $contribution->update([
+                'status' => 'voided',
+                'void_reason' => $validated['void_reason'],
+                'voided_at' => now(),
+                'voided_by' => $request->user()->id,
+                'updated_by' => $request->user()->id,
+            ]);
+
+            $this->logActivity(
+                $request,
+                'contribution_voided',
+                $contribution->id,
+                'Contribution voided. Reason: ' . trim($validated['void_reason']),
+                $before,
+                $contribution->fresh()->only([
+                    'member_id',
+                    'contribution_category_id',
+                    'amount',
+                    'payment_date',
+                    'reference_number',
+                    'notes',
+                    'status',
+                    'void_reason',
+                    'voided_at',
+                    'voided_by',
+                ])
+            );
+        });
 
         $redirectTarget = $request->input('redirect_to');
         $previousUrl = url()->previous();
@@ -566,5 +620,27 @@ class ContributionController extends Controller
             ->count();
 
         return $category->calculateMonthlyCoverageAmount($monthCount, $validated['payment_date'] ?? null);
+    }
+
+    private function logActivity(
+        Request $request,
+        string $action,
+        int $recordId,
+        string $description,
+        ?array $oldValues,
+        ?array $newValues,
+    ): void {
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => $action,
+            'module' => 'contributions',
+            'record_id' => $recordId,
+            'description' => $description,
+            'old_values' => $oldValues,
+            'new_values' => $newValues,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
     }
 }

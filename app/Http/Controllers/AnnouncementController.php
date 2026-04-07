@@ -6,6 +6,7 @@ use App\Http\Requests\StoreAnnouncementRequest;
 use App\Http\Requests\UpdateAnnouncementRequest;
 use App\Models\ActivityLog;
 use App\Models\Announcement;
+use App\Models\Event;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ class AnnouncementController extends Controller
         abort_unless($request->user()?->canManageAnnouncements(), 403);
 
         $announcements = Announcement::query()
-            ->with(['creator', 'updater'])
+            ->with(['creator', 'updater', 'event'])
             ->latest('published_at')
             ->latest('created_at')
             ->paginate(15)
@@ -33,7 +34,9 @@ class AnnouncementController extends Controller
     {
         abort_unless($request->user()?->canManageAnnouncements(), 403);
 
-        return view('announcements.create');
+        return view('announcements.create', [
+            'events' => $this->eventOptions(),
+        ]);
     }
 
     public function store(StoreAnnouncementRequest $request): RedirectResponse
@@ -66,6 +69,7 @@ class AnnouncementController extends Controller
 
         return view('announcements.edit', [
             'announcement' => $announcement,
+            'events' => $this->eventOptions(),
         ]);
     }
 
@@ -131,6 +135,7 @@ class AnnouncementController extends Controller
         return [
             'title' => $validated['title'],
             'body' => $validated['body'],
+            'event_id' => $validated['event_id'] ?? null,
             'visibility' => $validated['visibility'],
             'is_published' => $isPublished,
             'published_at' => $isPublished
@@ -146,10 +151,20 @@ class AnnouncementController extends Controller
         return [
             'title' => $announcement->title,
             'body' => $announcement->body,
+            'event_id' => $announcement->event_id,
             'visibility' => $announcement->visibility,
             'is_published' => (bool) $announcement->is_published,
             'published_at' => optional($announcement->published_at)?->toDateTimeString(),
         ];
+    }
+
+    private function eventOptions()
+    {
+        return Event::query()
+            ->orderBy('event_date')
+            ->orderBy('start_time')
+            ->orderBy('title')
+            ->get();
     }
 
     private function logAnnouncementActivity(

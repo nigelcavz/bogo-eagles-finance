@@ -35,6 +35,7 @@
                                 <thead>
                                     <tr>
                                         <th>Title</th>
+                                        <th>Linked Event</th>
                                         <th>Status</th>
                                         <th>Visibility</th>
                                         <th>Published</th>
@@ -48,6 +49,16 @@
                                             <td>
                                                 <div class="font-medium text-slate-100">{{ $announcement->title }}</div>
                                                 <div class="mt-1 max-w-xl text-xs text-slate-400">{{ $announcement->body }}</div>
+                                            </td>
+                                            <td>
+                                                @if ($announcement->event)
+                                                    <div class="font-medium text-slate-200">{{ $announcement->event->title }}</div>
+                                                    <div class="mt-1 text-xs text-slate-400">
+                                                        {{ $announcement->event->event_date?->format('M d, Y') ?? '--' }}
+                                                    </div>
+                                                @else
+                                                    <span class="text-slate-500">--</span>
+                                                @endif
                                             </td>
                                             <td>
                                                 <span class="status-badge {{ $announcement->is_published ? 'status-active' : 'status-inactive' }}">

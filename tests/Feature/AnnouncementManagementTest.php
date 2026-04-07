@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\ActivityLog;
 use App\Models\Announcement;
+use App\Models\Event;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -18,10 +19,20 @@ class AnnouncementManagementTest extends TestCase
             'role' => User::ROLE_TREASURER,
             'is_active' => true,
         ]);
+        $event = Event::create([
+            'title' => 'General Assembly',
+            'description' => 'Scheduled club gathering.',
+            'event_date' => now()->addWeek()->toDateString(),
+            'start_time' => '18:00',
+            'end_time' => '20:00',
+            'location' => 'Clubhouse',
+            'created_by' => $user->id,
+        ]);
 
         $response = $this->actingAs($user)->post(route('announcements.store'), [
             'title' => 'General Assembly',
             'body' => 'Monthly club gathering this Saturday.',
+            'event_id' => $event->id,
             'visibility' => 'all',
             'is_published' => '1',
         ]);
@@ -33,6 +44,7 @@ class AnnouncementManagementTest extends TestCase
         $this->assertNotNull($announcement);
         $this->assertSame('General Assembly', $announcement->title);
         $this->assertTrue((bool) $announcement->is_published);
+        $this->assertSame($event->id, $announcement->event_id);
 
         $this->assertDatabaseHas('activity_logs', [
             'action' => 'announcement_created',
@@ -72,10 +84,20 @@ class AnnouncementManagementTest extends TestCase
             'is_published' => false,
             'created_by' => $user->id,
         ]);
+        $event = Event::create([
+            'title' => 'Board Meeting',
+            'description' => 'Planning session.',
+            'event_date' => now()->addDays(10)->toDateString(),
+            'start_time' => '19:00',
+            'end_time' => '21:00',
+            'location' => 'Clubhouse',
+            'created_by' => $user->id,
+        ]);
 
         $this->actingAs($user)->put(route('announcements.update', $announcement), [
             'title' => 'Updated Title',
             'body' => 'Updated body.',
+            'event_id' => $event->id,
             'visibility' => 'all',
             'is_published' => '1',
         ])->assertRedirect(route('announcements.index'));
@@ -84,6 +106,7 @@ class AnnouncementManagementTest extends TestCase
 
         $this->assertSame('Updated Title', $announcement->title);
         $this->assertTrue((bool) $announcement->is_published);
+        $this->assertSame($event->id, $announcement->event_id);
 
         $this->assertDatabaseHas('activity_logs', [
             'action' => 'announcement_updated',

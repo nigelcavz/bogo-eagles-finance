@@ -6,6 +6,7 @@
         $canManageFinance = $user?->canManageFinance() ?? false;
         $canViewFinance = $user?->canViewFinance() ?? false;
         $canManageAnnouncements = $user?->canManageAnnouncements() ?? false;
+        $canManageCalendar = $user?->canManageCalendar() ?? false;
         $canViewOwnMemberProfile = $user?->canViewOwnMemberProfile() ?? false;
         $isMembersNavActive = request()->routeIs('members.*') && ! request()->routeIs('members.self');
     @endphp
@@ -26,6 +27,10 @@
             <div class="hidden items-center justify-center gap-2 sm:flex">
                 <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                     {{ __('Dashboard') }}
+                </x-nav-link>
+
+                <x-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
+                    {{ __('Calendar') }}
                 </x-nav-link>
 
                 @if ($canViewFinance)
@@ -77,6 +82,12 @@
                             </x-dropdown-link>
                         @endif
 
+                        @if ($canManageCalendar)
+                            <x-dropdown-link :href="route('calendar.create')">
+                                {{ __('Add Event') }}
+                            </x-dropdown-link>
+                        @endif
+
                         @if ($canManageUsers)
                             <x-dropdown-link :href="route('users.index')">
                                 {{ __('User Roles') }}
@@ -120,6 +131,10 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
+                {{ __('Calendar') }}
+            </x-responsive-nav-link>
+
             @if ($canViewFinance)
                 <x-responsive-nav-link :href="route('contributions.index')" :active="request()->routeIs('contributions.*')">
                     {{ __('Contributions') }}
@@ -158,6 +173,12 @@
                 @if ($canManageAnnouncements)
                     <x-responsive-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
                         {{ __('Announcements') }}
+                    </x-responsive-nav-link>
+                @endif
+
+                @if ($canManageCalendar)
+                    <x-responsive-nav-link :href="route('calendar.create')" :active="request()->routeIs('calendar.create')">
+                        {{ __('Add Event') }}
                     </x-responsive-nav-link>
                 @endif
 

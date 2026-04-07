@@ -32,6 +32,19 @@
                             <x-input-error class="mt-2" :messages="$errors->get('body')" />
                         </div>
 
+                        <div>
+                            <label for="event_id" class="block text-sm font-medium text-gray-700">Linked Event</label>
+                            <select id="event_id" name="event_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="">No linked event</option>
+                                @foreach ($events as $event)
+                                    <option value="{{ $event->id }}" @selected((int) old('event_id', $announcement->event_id) === (int) $event->id)>
+                                        {{ $event->event_date?->format('M d, Y') }} - {{ $event->title }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <x-input-error class="mt-2" :messages="$errors->get('event_id')" />
+                        </div>
+
                         <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
                             <div>
                                 <label for="visibility" class="block text-sm font-medium text-gray-700">Visibility</label>

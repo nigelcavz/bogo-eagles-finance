@@ -150,6 +150,11 @@ class User extends Authenticatable
         ];
     }
 
+    public static function calendarManagerRoles(): array
+    {
+        return self::announcementManagerRoles();
+    }
+
     public static function memberViewerRoles(): array
     {
         return [
@@ -228,6 +233,11 @@ class User extends Authenticatable
     public function canManageAnnouncements(): bool
     {
         return $this->is_active && $this->hasAnyRole(self::announcementManagerRoles());
+    }
+
+    public function canManageCalendar(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::calendarManagerRoles());
     }
 
     public function canViewOwnMemberProfile(): bool

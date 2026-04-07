@@ -11,7 +11,7 @@
     </x-slot>
 
     <div class="page-shell">
-        <div class="page-content">
+        <div class="page-content max-w-7xl">
             @if (! empty($notifications))
                 <div
                     x-data="{
@@ -71,22 +71,37 @@
                 </div>
             @endif
 
-            <div class="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-                <div class="app-panel">
-                    <div class="panel-body">
-                        <h3 class="text-lg font-semibold text-slate-100">Overview</h3>
-                        <p class="mt-2 text-sm leading-6 text-slate-400">
-                            Use the dashboard as your quick entry point for contribution tracking, expense monitoring, member oversight, and audit-friendly activity across the club finance workflow.
-                        </p>
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                @if ($quickStats['can_view_finance'])
+                    <div class="app-panel-muted p-5">
+                        <p class="text-sm font-medium text-slate-400">Total Contributions</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-100">@money($quickStats['total_contributions'])</p>
+                        <p class="mt-2 text-xs uppercase tracking-[0.14em] text-emerald-300/70">Posted only</p>
                     </div>
+
+                    <div class="app-panel-muted p-5">
+                        <p class="text-sm font-medium text-slate-400">Total Expenses</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-100">@money($quickStats['total_expenses'])</p>
+                        <p class="mt-2 text-xs uppercase tracking-[0.14em] text-rose-300/70">Posted only</p>
+                    </div>
+
+                    <div class="app-panel-muted p-5">
+                        <p class="text-sm font-medium text-slate-400">Net Balance</p>
+                        <p class="mt-2 text-2xl font-semibold text-slate-100">@money($quickStats['net_balance'])</p>
+                        <p class="mt-2 text-xs uppercase tracking-[0.14em] text-sky-300/70">Contributions less expenses</p>
+                    </div>
+                @endif
+
+                <div class="app-panel-muted p-5">
+                    <p class="text-sm font-medium text-slate-400">Total Members</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-100">{{ $quickStats['total_members'] }}</p>
+                    <p class="mt-2 text-xs uppercase tracking-[0.14em] text-slate-400">Directory count</p>
                 </div>
 
-                <div class="app-panel-muted p-6">
-                    <p class="text-sm font-medium uppercase tracking-[0.18em] text-sky-300/80">System Status</p>
-                    <p class="mt-3 text-2xl font-semibold text-slate-100">Online</p>
-                    <p class="mt-2 text-sm leading-6 text-slate-400">
-                        Notifications are role-aware and prioritize finance alerts before general club updates.
-                    </p>
+                <div class="app-panel-muted p-5">
+                    <p class="text-sm font-medium text-slate-400">Active Members</p>
+                    <p class="mt-2 text-2xl font-semibold text-slate-100">{{ $quickStats['active_members'] }}</p>
+                    <p class="mt-2 text-xs uppercase tracking-[0.14em] text-emerald-300/70">Currently active</p>
                 </div>
             </div>
 
@@ -111,9 +126,29 @@
                                     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div>
                                             <h4 class="text-lg font-semibold text-slate-50">{{ $announcement->title }}</h4>
-                                            <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-300/80">
-                                                Published {{ $announcement->published_at?->format('M d, Y h:i A') ?? $announcement->created_at?->format('M d, Y h:i A') }}
-                                            </div>
+                                            @if ($announcement->event)
+                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-sky-200/90">
+                                                    <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 uppercase tracking-[0.14em]">
+                                                        {{ $announcement->kind === 'event' ? 'Event' : 'Announcement + Event' }}
+                                                    </span>
+                                                    <span>{{ $announcement->event->event_date?->format('M d, Y') ?? '--' }}</span>
+                                                    @if ($announcement->event->start_time)
+                                                        <span>
+                                                            {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->start_time)->format('h:i A') }}
+                                                            @if ($announcement->event->end_time)
+                                                                - {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->end_time)->format('h:i A') }}
+                                                            @endif
+                                                        </span>
+                                                    @endif
+                                                    @if ($announcement->event->location)
+                                                        <span>{{ $announcement->event->location }}</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-300/80">
+                                                    Published {{ $announcement->published_at?->format('M d, Y h:i A') ?? $announcement->created_at?->format('M d, Y h:i A') }}
+                                                </div>
+                                            @endif
                                         </div>
 
                                         @if ($announcement->creator)
@@ -121,9 +156,15 @@
                                         @endif
                                     </div>
 
-                                    <div class="mt-4 whitespace-pre-line text-[0.95rem] leading-7 text-slate-200/90">
-                                        {{ $announcement->body }}
-                                    </div>
+                                    @if (filled($announcement->body))
+                                        <div class="mt-4 whitespace-pre-line text-[0.95rem] leading-7 text-slate-200/90">
+                                            {{ $announcement->body }}
+                                        </div>
+                                    @elseif ($announcement->event)
+                                        <div class="mt-4 text-[0.95rem] leading-7 text-slate-300/90">
+                                            {{ $announcement->event->description ?: 'This scheduled club event is now part of the shared dashboard feed.' }}
+                                        </div>
+                                    @endif
                                 </article>
                             @endforeach
                         </div>
@@ -133,6 +174,109 @@
                         </div>
                     @endif
                 </div>
+            </div>
+
+            @if ($monthlySnapshot)
+                <div class="app-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-100">Monthly Snapshot</h3>
+                            <p class="mt-1 text-sm text-slate-400">Quick context for posted financial activity in {{ now()->format('F Y') }}.</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-body grid gap-4 md:grid-cols-2">
+                        <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5">
+                            <p class="text-sm font-medium text-slate-400">This Month Contributions</p>
+                            <p class="mt-2 text-2xl font-semibold text-slate-100">@money($monthlySnapshot['contributions'])</p>
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5">
+                            <p class="text-sm font-medium text-slate-400">This Month Expenses</p>
+                            <p class="mt-2 text-2xl font-semibold text-slate-100">@money($monthlySnapshot['expenses'])</p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <div class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+                <div class="app-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h3 class="text-lg font-semibold text-slate-100">Personal Section</h3>
+                            <p class="mt-1 text-sm text-slate-400">A quick look at your own contribution and dues standing.</p>
+                        </div>
+                    </div>
+
+                    <div class="panel-body grid gap-4 md:grid-cols-2">
+                        <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5">
+                            <p class="text-sm font-medium text-slate-400">My Latest Contribution</p>
+                            @if ($personalSection['latest_contribution'])
+                                <p class="mt-2 text-2xl font-semibold text-slate-100">
+                                    @money($personalSection['latest_contribution']->amount)
+                                </p>
+                                <p class="mt-2 text-sm text-slate-300">
+                                    {{ $personalSection['latest_contribution']->category?->name ?? 'Contribution' }}
+                                </p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">
+                                    {{ optional($personalSection['latest_contribution']->payment_date)->format('M d, Y') ?? '--' }}
+                                </p>
+                            @elseif ($personalSection['member'])
+                                <p class="mt-2 text-sm text-slate-400">No posted contributions found for your member profile yet.</p>
+                            @else
+                                <p class="mt-2 text-sm text-slate-400">No linked member profile is available for this account.</p>
+                            @endif
+                        </div>
+
+                        <div class="rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5">
+                            <p class="text-sm font-medium text-slate-400">My Dues Status</p>
+                            @if ($personalSection['dues_status'])
+                                <div class="mt-3">
+                                    <span class="status-badge {{ $personalSection['dues_status']['state'] === 'paid' ? 'status-active' : 'status-inactive' }}">
+                                        {{ $personalSection['dues_status']['label'] }}
+                                    </span>
+                                </div>
+                                <p class="mt-3 text-sm text-slate-300">{{ $personalSection['dues_status']['detail'] }}</p>
+                            @elseif ($personalSection['member'])
+                                <p class="mt-2 text-sm text-slate-400">Monthly dues tracking is not available for your profile yet.</p>
+                            @else
+                                <p class="mt-2 text-sm text-slate-400">No linked member profile is available for dues tracking.</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                @if ($recentActivities->isNotEmpty())
+                    <div class="app-panel">
+                        <div class="panel-header">
+                            <div>
+                                <h3 class="text-lg font-semibold text-slate-100">Recent Activity</h3>
+                                <p class="mt-1 text-sm text-slate-400">Latest system actions shown in a light audit-friendly view.</p>
+                            </div>
+                        </div>
+
+                        <div class="panel-body">
+                            <div class="space-y-3">
+                                @foreach ($recentActivities as $activity)
+                                    <article class="rounded-2xl border border-slate-800/80 bg-slate-900/70 px-4 py-3">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p class="text-sm font-medium text-slate-100">{{ $activity->dashboardSummary() }}</p>
+                                                <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                                                    <span>{{ $activity->formattedModule() }}</span>
+                                                    @if ($activity->record_id)
+                                                        <span>• Record #{{ $activity->record_id }}</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <span class="shrink-0 text-xs text-slate-500">{{ $activity->created_at?->format('M d, h:i A') ?? '--' }}</span>
+                                        </div>
+                                    </article>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
