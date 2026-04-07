@@ -21,7 +21,7 @@
 
             <!-- Page Heading -->
             @isset($header)
-                <header class="relative overflow-hidden bg-transparent">
+                <header class="relative bg-transparent">
                     <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-slate-900/30 via-slate-900/10 to-transparent"></div>
                     <div class="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
                         {{ $header }}

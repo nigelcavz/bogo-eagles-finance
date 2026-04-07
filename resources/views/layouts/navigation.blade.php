@@ -1,11 +1,12 @@
 <nav x-data="{ open: false }" class="relative z-40 bg-slate-900/65 backdrop-blur">
     @php
         $user = Auth::user();
-        $canManageUsers = $user?->role === 'admin';
-        $canManageMembers = in_array($user?->role, ['admin', 'president', 'treasurer'], true);
-        $canManageFinance = in_array($user?->role, ['admin', 'treasurer'], true);
-        $canViewOwnMemberProfile = in_array($user?->role, ['member', 'officer', 'president', 'treasurer'], true);
-        $isMembersNavActive = request()->routeIs('members.index', 'members.create', 'members.store', 'members.edit', 'members.update', 'members.show');
+        $canManageUsers = $user?->canManageUsers() ?? false;
+        $canViewMembers = $user?->canViewMembers() ?? false;
+        $canManageFinance = $user?->canManageFinance() ?? false;
+        $canViewFinance = $user?->canViewFinance() ?? false;
+        $canViewOwnMemberProfile = $user?->canViewOwnMemberProfile() ?? false;
+        $isMembersNavActive = request()->routeIs('members.*') && ! request()->routeIs('members.self');
     @endphp
 
     <!-- Primary Navigation Menu -->
@@ -26,7 +27,7 @@
                     {{ __('Dashboard') }}
                 </x-nav-link>
 
-                @if ($canManageFinance)
+                @if ($canViewFinance)
                     <x-nav-link :href="route('contributions.index')" :active="request()->routeIs('contributions.*')">
                         {{ __('Contributions') }}
                     </x-nav-link>
@@ -36,7 +37,7 @@
                     </x-nav-link>
                 @endif
 
-                @if ($canManageMembers)
+                @if ($canViewMembers)
                     <x-nav-link :href="route('members.index')" :active="$isMembersNavActive">
                         {{ __('Members') }}
                     </x-nav-link>
@@ -108,7 +109,7 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            @if ($canManageFinance)
+            @if ($canViewFinance)
                 <x-responsive-nav-link :href="route('contributions.index')" :active="request()->routeIs('contributions.*')">
                     {{ __('Contributions') }}
                 </x-responsive-nav-link>
@@ -118,7 +119,7 @@
                 </x-responsive-nav-link>
             @endif
 
-            @if ($canManageMembers)
+            @if ($canViewMembers)
                 <x-responsive-nav-link :href="route('members.index')" :active="$isMembersNavActive">
                     {{ __('Members') }}
                 </x-responsive-nav-link>

@@ -18,12 +18,14 @@ class MemberController extends Controller
 {
     public function index(): View
     {
+        abort_unless(request()->user()?->canViewMembers(), 403);
+
         $members = Member::query()
             ->with('user')
             ->where(function ($query) {
                 $query->whereDoesntHave('user')
                     ->orWhereHas('user', function ($userQuery) {
-                        $userQuery->where('role', '!=', 'admin');
+                        $userQuery->where('role', '!=', User::ROLE_ADMIN);
                     });
             })
             ->orderBy('last_name')
@@ -35,11 +37,15 @@ class MemberController extends Controller
 
     public function create(): View
     {
+        abort_unless(request()->user()?->canManageMembers(), 403);
+
         return view('members.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()?->canManageMembers(), 403);
+
         $validated = $request->validate([
             'member_code' => ['nullable', 'string', 'max:50', 'unique:members,member_code'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
@@ -63,7 +69,7 @@ class MemberController extends Controller
             $memberAttributes = collect($validated)
                 ->except('email')
                 ->merge([
-                    'club_position' => MemberClubPositionMapper::forRole('member'),
+                    'club_position' => MemberClubPositionMapper::forRole(User::ROLE_MEMBER),
                 ])
                 ->all();
 
@@ -71,7 +77,7 @@ class MemberController extends Controller
                 'name' => trim($validated['first_name'] . ' ' . $validated['last_name']),
                 'email' => $validated['email'],
                 'password' => Hash::make($temporaryPassword),
-                'role' => 'member',
+                'role' => User::ROLE_MEMBER,
                 'is_active' => true,
                 'must_change_password' => true,
             ]);
@@ -114,11 +120,15 @@ class MemberController extends Controller
 
     public function edit(Member $member): View
     {
+        abort_unless(request()->user()?->canManageMembers(), 403);
+
         return view('members.edit', compact('member'));
     }
 
     public function show(Member $member): View
     {
+        abort_unless(request()->user()?->canViewMembers(), 403);
+
         return view('members.show', $this->buildMemberProfileViewData(
             request: request(),
             member: $member,
@@ -128,6 +138,8 @@ class MemberController extends Controller
 
     public function self(Request $request): View
     {
+        abort_unless($request->user()?->canViewOwnMemberProfile(), 403);
+
         $user = $request->user()->loadMissing('member');
 
         if (! $user->member) {
@@ -145,6 +157,8 @@ class MemberController extends Controller
 
     public function update(Request $request, Member $member): RedirectResponse
     {
+        abort_unless($request->user()?->canManageMembers(), 403);
+
         $validated = $request->validate([
             'member_code' => ['nullable', 'string', 'max:50', 'unique:members,member_code,' . $member->id],
             'club_position' => ['nullable', 'string', 'max:100'],
@@ -160,6 +174,12 @@ class MemberController extends Controller
             'joined_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $linkedUser = $member->user()->first();
+
+        if ($linkedUser && ! $linkedUser->isAdmin()) {
+            $validated['club_position'] = MemberClubPositionMapper::forRole($linkedUser->role) ?? $validated['club_position'] ?? null;
+        }
 
         $member->update($validated);
 

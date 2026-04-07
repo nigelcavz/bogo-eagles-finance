@@ -15,13 +15,15 @@
             <div>
                 <h2 class="section-heading">Expenses</h2>
                 <p class="section-subheading">
-                    Review outgoing funds, search expense history, and manage audit-safe updates from one place.
+                    Review outgoing funds, search expense history, and manage audit-safe expense records from one place.
                 </p>
             </div>
 
-            <a href="{{ route('expenses.create') }}" class="btn-primary">
-                Add Expense
-            </a>
+            @if (auth()->user()?->canManageFinance())
+                <a href="{{ route('expenses.create') }}" class="btn-primary">
+                    Add Expense
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -138,12 +140,8 @@
                                                 @endif
                                             </td>
                                             <td class="align-top">
-                                                @if ($expense->status === 'active')
-                                                    <div class="flex flex-wrap gap-2">
-                                                        <a href="{{ route('expenses.edit', $expense) }}" class="btn-secondary-accent">
-                                                            Edit
-                                                        </a>
-
+                                            @if (auth()->user()?->canManageFinance() && $expense->status === 'active')
+                                                <div class="flex flex-wrap gap-2">
                                                         <form
                                                             method="POST"
                                                             action="{{ route('expenses.void', $expense) }}"
@@ -158,10 +156,12 @@
                                                             </button>
                                                         </form>
                                                     </div>
-                                                @else
-                                                    <span class="text-xs text-slate-500">Already voided</span>
-                                                @endif
-                                            </td>
+                                            @elseif ($expense->status === 'voided')
+                                                <span class="text-xs text-slate-500">Already voided</span>
+                                            @else
+                                                <span class="text-xs text-slate-500">View only</span>
+                                            @endif
+                                        </td>
                                         </tr>
                                     @endforeach
                                 </tbody>

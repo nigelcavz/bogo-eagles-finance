@@ -26,6 +26,14 @@ class MemberRoleClubPositionSyncTest extends TestCase
         $user->update(['role' => 'president']);
 
         $this->assertSame('President', $member->fresh()->club_position);
+
+        $user->update(['role' => 'vice_president']);
+
+        $this->assertSame('Vice President', $member->fresh()->club_position);
+
+        $user->update(['role' => 'secretary']);
+
+        $this->assertSame('Secretary', $member->fresh()->club_position);
     }
 
     public function test_admin_role_does_not_overwrite_existing_member_club_position(): void
@@ -49,6 +57,12 @@ class MemberRoleClubPositionSyncTest extends TestCase
             'club_position' => 'Member',
         ]);
 
+        $secretary = User::factory()->role('secretary')->create();
+        $secretaryMember = Member::factory()->create([
+            'user_id' => $secretary->id,
+            'club_position' => 'Member',
+        ]);
+
         $admin = User::factory()->role('admin')->create();
         $adminMember = Member::factory()->create([
             'user_id' => $admin->id,
@@ -56,10 +70,11 @@ class MemberRoleClubPositionSyncTest extends TestCase
         ]);
 
         $this->artisan('members:sync-club-positions')
-            ->expectsOutput('Synchronized 1 member club position(s).')
+            ->expectsOutput('Synchronized 2 member club position(s).')
             ->assertExitCode(0);
 
         $this->assertSame('Officer', $officerMember->fresh()->club_position);
+        $this->assertSame('Secretary', $secretaryMember->fresh()->club_position);
         $this->assertSame('Member', $adminMember->fresh()->club_position);
     }
 }

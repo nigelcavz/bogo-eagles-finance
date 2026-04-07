@@ -36,7 +36,7 @@ class UserManagementController extends Controller
 
         return view('users.edit', [
             'managedUser' => $user,
-            'availableRoles' => ['admin', 'member', 'officer', 'president', 'treasurer'],
+            'availableRoles' => User::assignableRoles(),
         ]);
     }
 

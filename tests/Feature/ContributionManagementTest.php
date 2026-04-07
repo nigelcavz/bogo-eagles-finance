@@ -8,19 +8,24 @@ use App\Models\ContributionCoverage;
 use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class ContributionManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_and_treasurer_can_open_contribution_pages(): void
+    public function test_finance_viewers_can_open_contribution_overview_but_only_managers_can_open_create_page(): void
     {
         $member = Member::factory()->create();
         $category = ContributionCategory::factory()->create();
 
         $admin = User::factory()->role('admin')->create();
         $treasurer = User::factory()->role('treasurer')->create();
+        $president = User::factory()->role('president')->create();
+        $vicePresident = User::factory()->role('vice_president')->create();
+        $secretary = User::factory()->role('secretary')->create();
+        $officer = User::factory()->role('officer')->create();
 
         $this->actingAs($admin)
             ->get(route('contributions.index'))
@@ -30,6 +35,16 @@ class ContributionManagementTest extends TestCase
             ->get(route('contributions.create', ['member_id' => $member->id]))
             ->assertOk()
             ->assertSee($category->name);
+
+        foreach ([$president, $vicePresident, $secretary, $officer] as $viewer) {
+            $this->actingAs($viewer)
+                ->get(route('contributions.index'))
+                ->assertOk();
+
+            $this->actingAs($viewer)
+                ->get(route('contributions.create'))
+                ->assertForbidden();
+        }
     }
 
     public function test_member_role_is_denied_contribution_pages(): void
@@ -299,75 +314,32 @@ class ContributionManagementTest extends TestCase
         $this->assertDatabaseCount('contribution_coverages', 1);
     }
 
-    public function test_standard_contribution_can_be_updated_without_changing_member_or_category(): void
+    public function test_financial_contribution_edit_routes_are_not_registered(): void
     {
-        $user = User::factory()->role('admin')->create();
-        $member = Member::factory()->create();
-        $category = ContributionCategory::factory()->create([
-            'name' => 'Voluntary Contributions',
-        ]);
-
-        $contribution = Contribution::create([
-            'member_id' => $member->id,
-            'contribution_category_id' => $category->id,
-            'amount' => 400.00,
-            'payment_date' => '2026-04-01',
-            'reference_number' => 'OLD-REF',
-            'notes' => 'Original notes',
-            'status' => 'active',
-            'created_by' => $user->id,
-        ]);
-
-        $response = $this->actingAs($user)->put(route('contributions.update', $contribution), [
-            'amount' => 650.00,
-            'payment_date' => '2026-04-15',
-            'payment_type' => 'bank transfer',
-            'reference_number' => 'NEW-REF',
-            'notes' => 'Updated notes',
-        ]);
-
-        $response->assertRedirect(route('contributions.types.show', ['type' => 'voluntary-contributions']));
-
-        $this->assertDatabaseHas('contributions', [
-            'id' => $contribution->id,
-            'member_id' => $member->id,
-            'contribution_category_id' => $category->id,
-            'amount' => '650.00',
-            'payment_type' => 'bank transfer',
-            'reference_number' => 'NEW-REF',
-            'updated_by' => $user->id,
-        ]);
+        $this->assertFalse(Route::has('contributions.edit'));
+        $this->assertFalse(Route::has('contributions.update'));
     }
 
-    public function test_monthly_dues_entries_with_coverages_must_be_corrected_by_void_and_reentry(): void
+    public function test_financial_contribution_records_are_void_only(): void
     {
-        $user = User::factory()->role('admin')->create();
+        $user = User::factory()->role('treasurer')->create();
         $member = Member::factory()->create();
-        $category = ContributionCategory::factory()->create([
-            'name' => 'Monthly Dues/Contributions',
-        ]);
+        $category = ContributionCategory::factory()->create();
 
         $contribution = Contribution::create([
             'member_id' => $member->id,
             'contribution_category_id' => $category->id,
             'amount' => 600.00,
             'payment_date' => '2026-01-05',
-            'coverage_type' => 'monthly',
             'status' => 'active',
             'created_by' => $user->id,
         ]);
 
-        ContributionCoverage::create([
-            'contribution_id' => $contribution->id,
-            'member_id' => $member->id,
-            'coverage_year' => 2026,
-            'coverage_month' => 1,
-            'coverage_label' => 'Jan 2026',
+        $this->assertDatabaseHas('contributions', [
+            'id' => $contribution->id,
+            'amount' => '600.00',
+            'status' => 'active',
         ]);
-
-        $response = $this->actingAs($user)->get(route('contributions.edit', $contribution));
-
-        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
     }
 
     public function test_monthly_availability_endpoint_returns_already_covered_months(): void

@@ -9,9 +9,7 @@ class StoreExpenseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null
-            && in_array($this->user()->role, ['admin', 'treasurer'], true)
-            && $this->user()->is_active;
+        return $this->user()?->canManageFinance() ?? false;
     }
 
     public function rules(): array

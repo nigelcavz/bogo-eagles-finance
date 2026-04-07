@@ -14,7 +14,7 @@ Artisan::command('members:sync-club-positions', function () {
 
     User::query()
         ->with('member')
-        ->whereIn('role', ['member', 'officer', 'president', 'treasurer'])
+        ->whereIn('role', User::clubRoles())
         ->chunkById(100, function ($users) use (&$updatedCount) {
             foreach ($users as $user) {
                 $member = $user->member;

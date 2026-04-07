@@ -1,5 +1,6 @@
 @php
-    $canManage = in_array(auth()->user()?->role, ['admin', 'treasurer'], true);
+    $canManage = auth()->user()?->canManageFinance() ?? false;
+    $canViewMembers = auth()->user()?->canViewMembers() ?? false;
 @endphp
 
 <x-app-layout>
@@ -100,9 +101,13 @@
                                             </td>
                                             <td>{{ $contribution->payment_date?->format('M d, Y') ?? '--' }}</td>
                                             <td>
-                                                <a href="{{ route('members.show', $contribution->member) }}" class="font-medium text-sky-300 transition hover:text-sky-200">
-                                                    {{ $contribution->member->full_name }}
-                                                </a>
+                                                @if ($canViewMembers)
+                                                    <a href="{{ route('members.show', $contribution->member) }}" class="font-medium text-sky-300 transition hover:text-sky-200">
+                                                        {{ $contribution->member->full_name }}
+                                                    </a>
+                                                @else
+                                                    <span class="font-medium text-slate-100">{{ $contribution->member->full_name }}</span>
+                                                @endif
                                             </td>
                                             <td class="font-semibold text-slate-100">@money($contribution->amount)</td>
                                             <td>
@@ -122,10 +127,6 @@
                                             <td class="align-top">
                                                 @if ($canManage && $contribution->status === 'active')
                                                     <div class="flex flex-wrap gap-2">
-                                                        <a href="{{ route('contributions.edit', $contribution) }}" class="btn-secondary-accent">
-                                                            Edit
-                                                        </a>
-
                                                         <form
                                                             method="POST"
                                                             action="{{ route('contributions.void', $contribution) }}"

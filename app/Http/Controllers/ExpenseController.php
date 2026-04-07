@@ -17,6 +17,8 @@ class ExpenseController extends Controller
 {
     public function index(Request $request): View
     {
+        abort_unless($request->user()?->canViewFinance(), 403);
+
         $sort = $this->normalizeSort($request->string('sort', 'date_posted_desc')->toString());
         $status = $request->string('status', 'all')->toString();
         $search = trim($request->string('q')->toString());
@@ -73,6 +75,8 @@ class ExpenseController extends Controller
 
     public function create(): View
     {
+        abort_unless(request()->user()?->canManageFinance(), 403);
+
         return view('expenses.create', [
             'categories' => ExpenseCategory::query()->active()->orderBy('name')->get(),
         ]);
@@ -80,6 +84,8 @@ class ExpenseController extends Controller
 
     public function store(StoreExpenseRequest $request): RedirectResponse
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $validated = $request->validated();
 
         $expense = DB::transaction(function () use ($validated, $request) {
@@ -123,78 +129,22 @@ class ExpenseController extends Controller
 
     public function edit(Expense $expense): View|RedirectResponse
     {
-        if ($response = $this->redirectIfExpenseLocked($expense)) {
-            return $response;
-        }
-
-        return view('expenses.edit', [
-            'expense' => $expense->loadMissing(['category', 'creator', 'updater']),
-            'categories' => ExpenseCategory::query()
-                ->where(function (Builder $query) use ($expense) {
-                    $query->where('is_active', true)
-                        ->orWhereKey($expense->expense_category_id);
-                })
-                ->orderBy('name')
-                ->get(),
-        ]);
+        return redirect()
+            ->route('expenses.index')
+            ->with('error', 'Financial expense records are immutable. Please void the record and add a corrected expense instead.');
     }
 
     public function update(UpdateExpenseRequest $request, Expense $expense): RedirectResponse
     {
-        if ($response = $this->redirectIfExpenseLocked($expense)) {
-            return $response;
-        }
-
-        $validated = $request->validated();
-        $before = $expense->only([
-            'expense_category_id',
-            'amount',
-            'expense_date',
-            'payee_name',
-            'description',
-            'reference_number',
-            'notes',
-            'status',
-        ]);
-
-        DB::transaction(function () use ($expense, $validated, $request, $before) {
-            $expense->update([
-                'expense_category_id' => $validated['expense_category_id'],
-                'amount' => $validated['amount'],
-                'expense_date' => $validated['expense_date'],
-                'payee_name' => trim($validated['payee_name']),
-                'description' => trim($validated['description']),
-                'reference_number' => filled($validated['reference_number'] ?? null) ? trim($validated['reference_number']) : null,
-                'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
-                'updated_by' => $request->user()->id,
-            ]);
-
-            $this->logActivity(
-                $request,
-                'expense_updated',
-                $expense->id,
-                'Expense updated. Reason for edit: ' . trim($validated['edit_reason']),
-                $before,
-                $expense->fresh()->only([
-                    'expense_category_id',
-                    'amount',
-                    'expense_date',
-                    'payee_name',
-                    'description',
-                    'reference_number',
-                    'notes',
-                    'status',
-                ])
-            );
-        });
-
         return redirect()
             ->route('expenses.index')
-            ->with('success', 'Expense updated successfully.');
+            ->with('error', 'Financial expense records are immutable. Please void the record and add a corrected expense instead.');
     }
 
     public function void(Request $request, Expense $expense): RedirectResponse
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $validated = $request->validate([
             'void_reason' => ['required', 'string', 'max:1000'],
         ]);
@@ -296,17 +246,6 @@ class ExpenseController extends Controller
             'category_asc',
             'category_desc',
         ], true) ? $sort : 'date_posted_desc';
-    }
-
-    private function redirectIfExpenseLocked(Expense $expense): ?RedirectResponse
-    {
-        if ($expense->status !== 'active') {
-            return redirect()
-                ->route('expenses.index')
-                ->with('error', 'Voided expenses should remain unchanged for audit history.');
-        }
-
-        return null;
     }
 
     private function logActivity(

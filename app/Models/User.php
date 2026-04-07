@@ -12,6 +12,14 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable;
 
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_PRESIDENT = 'president';
+    public const ROLE_VICE_PRESIDENT = 'vice_president';
+    public const ROLE_SECRETARY = 'secretary';
+    public const ROLE_TREASURER = 'treasurer';
+    public const ROLE_OFFICER = 'officer';
+    public const ROLE_MEMBER = 'member';
+
     protected $fillable = [
         'name',
         'email',
@@ -84,5 +92,114 @@ class User extends Authenticatable
     public function activityLogs(): HasMany
     {
         return $this->hasMany(ActivityLog::class);
+    }
+
+    public static function systemRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_PRESIDENT,
+            self::ROLE_VICE_PRESIDENT,
+            self::ROLE_SECRETARY,
+            self::ROLE_TREASURER,
+            self::ROLE_OFFICER,
+            self::ROLE_MEMBER,
+        ];
+    }
+
+    public static function clubRoles(): array
+    {
+        return [
+            self::ROLE_PRESIDENT,
+            self::ROLE_VICE_PRESIDENT,
+            self::ROLE_SECRETARY,
+            self::ROLE_TREASURER,
+            self::ROLE_OFFICER,
+            self::ROLE_MEMBER,
+        ];
+    }
+
+    public static function financeViewerRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_TREASURER,
+            self::ROLE_PRESIDENT,
+            self::ROLE_VICE_PRESIDENT,
+            self::ROLE_SECRETARY,
+            self::ROLE_OFFICER,
+        ];
+    }
+
+    public static function financeManagerRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_TREASURER,
+        ];
+    }
+
+    public static function memberViewerRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_TREASURER,
+            self::ROLE_PRESIDENT,
+            self::ROLE_VICE_PRESIDENT,
+            self::ROLE_SECRETARY,
+        ];
+    }
+
+    public static function memberManagerRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_SECRETARY,
+        ];
+    }
+
+    public static function assignableRoles(): array
+    {
+        return self::systemRoles();
+    }
+
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles, true);
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function canManageUsers(): bool
+    {
+        return $this->is_active && $this->isAdmin();
+    }
+
+    public function canManageMembers(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::memberManagerRoles());
+    }
+
+    public function canViewMembers(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::memberViewerRoles());
+    }
+
+    public function canViewFinance(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::financeViewerRoles());
+    }
+
+    public function canManageFinance(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::financeManagerRoles());
+    }
+
+    public function canViewOwnMemberProfile(): bool
+    {
+        return $this->is_active && ! $this->isAdmin() && $this->hasAnyRole(self::clubRoles());
     }
 }

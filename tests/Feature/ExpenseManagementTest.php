@@ -2,21 +2,25 @@
 
 namespace Tests\Feature;
 
-use App\Models\ActivityLog;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class ExpenseManagementTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_and_treasurer_can_open_expense_pages(): void
+    public function test_finance_viewers_can_open_expense_index_but_only_managers_can_open_create_page(): void
     {
         $admin = User::factory()->role('admin')->create();
         $treasurer = User::factory()->role('treasurer')->create();
+        $president = User::factory()->role('president')->create();
+        $vicePresident = User::factory()->role('vice_president')->create();
+        $secretary = User::factory()->role('secretary')->create();
+        $officer = User::factory()->role('officer')->create();
         $category = ExpenseCategory::create([
             'name' => 'Seminars',
             'is_active' => true,
@@ -30,6 +34,16 @@ class ExpenseManagementTest extends TestCase
             ->get(route('expenses.create'))
             ->assertOk()
             ->assertSee($category->name);
+
+        foreach ([$president, $vicePresident, $secretary, $officer] as $viewer) {
+            $this->actingAs($viewer)
+                ->get(route('expenses.index'))
+                ->assertOk();
+
+            $this->actingAs($viewer)
+                ->get(route('expenses.create'))
+                ->assertForbidden();
+        }
     }
 
     public function test_member_role_is_denied_expense_pages(): void
@@ -81,72 +95,10 @@ class ExpenseManagementTest extends TestCase
         ]);
     }
 
-    public function test_expense_update_requires_reason_and_logs_it(): void
+    public function test_financial_expense_edit_routes_are_not_registered(): void
     {
-        $user = User::factory()->role('admin')->create();
-        $category = ExpenseCategory::create([
-            'name' => 'Seminars',
-            'is_active' => true,
-        ]);
-        $updatedCategory = ExpenseCategory::create([
-            'name' => 'Other',
-            'is_active' => true,
-        ]);
-
-        $expense = Expense::create([
-            'expense_category_id' => $category->id,
-            'amount' => 1200.00,
-            'expense_date' => '2026-04-01',
-            'payee_name' => 'Training Center',
-            'description' => 'Initial seminar booking',
-            'status' => 'active',
-            'created_by' => $user->id,
-        ]);
-
-        $response = $this->from(route('expenses.edit', $expense))
-            ->actingAs($user)
-            ->put(route('expenses.update', $expense), [
-                'expense_category_id' => $updatedCategory->id,
-                'amount' => 1500.00,
-                'expense_date' => '2026-04-02',
-                'payee_name' => 'Training Center',
-                'description' => 'Updated seminar booking amount',
-                'reference_number' => 'UPD-01',
-                'notes' => 'Adjusted after invoice review',
-            ]);
-
-        $response->assertRedirect(route('expenses.edit', $expense));
-        $response->assertSessionHasErrors('edit_reason');
-
-        $response = $this->actingAs($user)->put(route('expenses.update', $expense), [
-            'expense_category_id' => $updatedCategory->id,
-            'amount' => 1500.00,
-            'expense_date' => '2026-04-02',
-            'payee_name' => 'Training Center',
-            'description' => 'Updated seminar booking amount',
-            'reference_number' => 'UPD-01',
-            'notes' => 'Adjusted after invoice review',
-            'edit_reason' => 'Corrected the amount based on the finalized invoice.',
-        ]);
-
-        $response->assertRedirect(route('expenses.index'));
-
-        $this->assertDatabaseHas('expenses', [
-            'id' => $expense->id,
-            'expense_category_id' => $updatedCategory->id,
-            'amount' => '1500.00',
-            'reference_number' => 'UPD-01',
-            'updated_by' => $user->id,
-        ]);
-
-        $log = ActivityLog::query()
-            ->where('module', 'expenses')
-            ->where('record_id', $expense->id)
-            ->where('action', 'expense_updated')
-            ->first();
-
-        $this->assertNotNull($log);
-        $this->assertStringContainsString('Corrected the amount based on the finalized invoice.', $log->description);
+        $this->assertFalse(Route::has('expenses.edit'));
+        $this->assertFalse(Route::has('expenses.update'));
     }
 
     public function test_expenses_can_be_filtered_by_search_category_and_status(): void

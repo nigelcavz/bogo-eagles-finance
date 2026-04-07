@@ -1,4 +1,6 @@
 <x-app-layout>
+    @php($canManageMembers = auth()->user()?->canManageMembers() ?? false)
+
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
             <div>
@@ -7,14 +9,16 @@
                 </h2>
             </div>
 
-            <div class="sm:ml-auto">
-                <a
-                    href="{{ route('members.create') }}"
-                    class="btn-primary w-full justify-center sm:w-auto"
-                >
-                    Add Member
-                </a>
-            </div>
+            @if ($canManageMembers)
+                <div class="sm:ml-auto">
+                    <a
+                        href="{{ route('members.create') }}"
+                        class="btn-primary w-full justify-center sm:w-auto"
+                    >
+                        Add Member
+                    </a>
+                </div>
+            @endif
         </div>
     </x-slot>
 
@@ -99,12 +103,14 @@
                                                     >
                                                         History
                                                     </a>
-                                                    <a
-                                                        href="{{ route('members.edit', $member) }}"
-                                                        class="btn-secondary"
-                                                    >
-                                                        Edit
-                                                    </a>
+                                                    @if ($canManageMembers)
+                                                        <a
+                                                            href="{{ route('members.edit', $member) }}"
+                                                            class="btn-secondary"
+                                                        >
+                                                            Edit
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>

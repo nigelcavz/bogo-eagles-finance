@@ -87,6 +87,21 @@ class MemberProfilePageTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_secretary_can_open_member_directory_pages_but_officer_cannot(): void
+    {
+        $secretary = User::factory()->role('secretary')->create();
+        $officer = User::factory()->role('officer')->create();
+        $member = Member::factory()->create();
+
+        $this->actingAs($secretary)
+            ->get(route('members.show', $member))
+            ->assertOk();
+
+        $this->actingAs($officer)
+            ->get(route('members.show', $member))
+            ->assertForbidden();
+    }
+
     public function test_member_self_service_page_handles_missing_linked_member_gracefully(): void
     {
         $memberUser = User::factory()->role('member')->create();
@@ -95,5 +110,14 @@ class MemberProfilePageTest extends TestCase
             ->get(route('members.self'))
             ->assertOk()
             ->assertSee('No linked member profile');
+    }
+
+    public function test_admin_cannot_open_self_service_member_profile_page(): void
+    {
+        $admin = User::factory()->role('admin')->create();
+
+        $this->actingAs($admin)
+            ->get(route('members.self'))
+            ->assertForbidden();
     }
 }

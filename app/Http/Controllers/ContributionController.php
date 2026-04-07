@@ -43,6 +43,8 @@ class ContributionController extends Controller
 
     public function index(Request $request): View
     {
+        abort_unless($request->user()?->canViewFinance(), 403);
+
         $contributionsQuery = Contribution::query()
             ->with(['member', 'category', 'creator', 'voider', 'coverages'])
             ->when($request->filled('member_id'), function (Builder $query) use ($request) {
@@ -84,6 +86,7 @@ class ContributionController extends Controller
             ->get();
 
         $categories = ContributionCategory::query()
+            ->active()
             ->orderBy('name')
             ->get();
 
@@ -101,6 +104,8 @@ class ContributionController extends Controller
 
     public function showType(Request $request, string $type): View
     {
+        abort_unless($request->user()?->canViewFinance(), 403);
+
         $category = $this->resolveCategoryFromType($type);
 
         if ($category->requiresMonthlyCoverage()) {
@@ -112,6 +117,8 @@ class ContributionController extends Controller
 
     public function create(Request $request): View
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $members = Member::query()
             ->where('membership_status', 'active')
             ->orderBy('last_name')
@@ -143,6 +150,8 @@ class ContributionController extends Controller
 
     public function monthlyAvailability(Request $request): JsonResponse
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $validated = $request->validate([
             'member_id' => ['required', 'integer', 'exists:members,id'],
             'coverage_year' => ['required', 'integer', 'min:2000', 'max:2100'],
@@ -170,6 +179,8 @@ class ContributionController extends Controller
 
     public function store(StoreContributionRequest $request): RedirectResponse
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $validated = $request->validated();
         $category = ContributionCategory::query()->findOrFail($validated['contribution_category_id']);
 
@@ -229,44 +240,22 @@ class ContributionController extends Controller
 
     public function edit(Contribution $contribution): View|RedirectResponse
     {
-        $contribution->loadMissing(['member', 'category', 'coverages']);
-
-        if ($response = $this->redirectIfContributionLocked($contribution)) {
-            return $response;
-        }
-
-        return view('contributions.edit', [
-            'contribution' => $contribution,
-            'type' => $this->typeForCategory($contribution->category),
-        ]);
+        return redirect()
+            ->route('contributions.types.show', ['type' => $this->typeForCategory($contribution->loadMissing('category')->category)])
+            ->with('error', 'Financial contribution records are immutable. Please void the record and enter a corrected contribution instead.');
     }
 
     public function update(UpdateContributionRequest $request, Contribution $contribution): RedirectResponse
     {
-        $contribution->loadMissing(['category', 'coverages']);
-
-        if ($response = $this->redirectIfContributionLocked($contribution)) {
-            return $response;
-        }
-
-        $validated = $request->validated();
-
-        $contribution->update([
-            'amount' => $validated['amount'],
-            'payment_date' => $validated['payment_date'],
-            'payment_type' => $validated['payment_type'] ?? null,
-            'reference_number' => $validated['reference_number'] ?? null,
-            'notes' => filled($validated['notes'] ?? null) ? trim($validated['notes']) : null,
-            'updated_by' => $request->user()->id,
-        ]);
-
         return redirect()
-            ->route('contributions.types.show', ['type' => $this->typeForCategory($contribution->category)])
-            ->with('success', 'Contribution updated successfully.');
+            ->route('contributions.types.show', ['type' => $this->typeForCategory($contribution->loadMissing('category')->category)])
+            ->with('error', 'Financial contribution records are immutable. Please void the record and enter a corrected contribution instead.');
     }
 
     public function void(Request $request, Contribution $contribution): RedirectResponse
     {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
         $validated = $request->validate([
             'void_reason' => ['required', 'string'],
         ]);
@@ -480,6 +469,7 @@ class ContributionController extends Controller
     private function buildTypePages(): Collection
     {
         $categories = ContributionCategory::query()
+            ->active()
             ->whereIn('name', array_values(self::TYPE_MAP))
             ->get()
             ->keyBy('name');
@@ -521,31 +511,6 @@ class ContributionController extends Controller
         ])->filter()->implode("\n\n");
 
         return $compiled !== '' ? $compiled : null;
-    }
-
-    private function redirectIfContributionLocked(Contribution $contribution): ?RedirectResponse
-    {
-        if ($contribution->status !== 'active') {
-            return redirect()
-                ->route('contributions.types.show', ['type' => $this->typeForCategory($contribution->category)])
-                ->with('error', 'Voided contributions should remain unchanged for audit history.');
-        }
-
-        if ($contribution->category?->requiresMonthlyCoverage() || $contribution->coverages->isNotEmpty()) {
-            $parameters = ['type' => $this->typeForCategory($contribution->category)];
-
-            $firstCoverageYear = $contribution->coverages->sortBy('coverage_year')->first()?->coverage_year;
-
-            if ($firstCoverageYear) {
-                $parameters['year'] = $firstCoverageYear;
-            }
-
-            return redirect()
-                ->route('contributions.types.show', $parameters)
-                ->with('error', 'Monthly dues entries with coverage periods should be corrected by voiding and re-entering the payment.');
-        }
-
-        return null;
     }
 
     private function coveredMonthsForMemberYear(int $memberId, int $year, ContributionCategory $category): array

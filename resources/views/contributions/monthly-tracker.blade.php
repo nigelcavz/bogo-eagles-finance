@@ -1,5 +1,6 @@
 @php
-    $canManage = in_array(auth()->user()?->role, ['admin', 'treasurer'], true);
+    $canManage = auth()->user()?->canManageFinance() ?? false;
+    $canViewMembers = auth()->user()?->canViewMembers() ?? false;
 @endphp
 
 <x-app-layout>
@@ -141,9 +142,11 @@
                                                             Record
                                                         </a>
                                                     @endif
-                                                    <a href="{{ route('members.show', $row['member']) }}" class="btn-secondary justify-center">
-                                                        History
-                                                    </a>
+                                                    @if ($canViewMembers)
+                                                        <a href="{{ route('members.show', $row['member']) }}" class="btn-secondary justify-center">
+                                                            History
+                                                        </a>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </td>

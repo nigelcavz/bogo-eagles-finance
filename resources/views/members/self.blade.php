@@ -1,20 +1,14 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    @if (! $member)
+        <x-slot name="header">
             <div>
                 <h2 class="section-heading">Profile</h2>
                 <p class="section-subheading">
                     View your member profile, contribution history, and monthly dues coverage records.
                 </p>
             </div>
+        </x-slot>
 
-            <a href="{{ route('profile.edit') }}" class="btn-secondary">
-                Account Settings
-            </a>
-        </div>
-    </x-slot>
-
-    @if (! $member)
         <div class="page-shell">
             <div class="page-content max-w-4xl">
                 <div class="app-panel">
@@ -28,6 +22,6 @@
             </div>
         </div>
     @else
-        @include('members.partials.profile-content')
+        @include('members.partials.profile-page')
     @endif
 </x-app-layout>

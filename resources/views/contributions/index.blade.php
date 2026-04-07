@@ -1,5 +1,7 @@
 <x-app-layout>
     @php
+        $canManageFinance = auth()->user()?->canManageFinance() ?? false;
+        $canViewMembers = auth()->user()?->canViewMembers() ?? false;
         $activeFilterCount = collect([
             request('member_id'),
             request('contribution_category_id'),
@@ -7,10 +9,12 @@
             request('date_to'),
             request('status') !== null && request('status') !== 'all' ? request('status') : null,
         ])->filter(fn ($value) => filled($value))->count();
+        $featuredTypePage = collect($typePages)->first(fn ($typePage) => $typePage['category']->requiresMonthlyCoverage());
+        $browseTypePages = collect($typePages)->reject(fn ($typePage) => $typePage['category']->requiresMonthlyCoverage())->values();
     @endphp
 
     <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="section-heading">Contributions Overview</h2>
                 <p class="section-subheading">
@@ -18,20 +22,46 @@
                 </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
-                <a
-                    href="{{ route('contribution-categories.index') }}"
-                    class="btn-secondary"
-                >
-                    Manage Contribution Categories
-                </a>
+            <div class="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
+                @if ($browseTypePages->isNotEmpty())
+                    <x-dropdown align="right" width="64">
+                        <x-slot name="trigger">
+                            <button
+                                type="button"
+                                class="btn-secondary inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2"
+                            >
+                                <span>Browse Types</span>
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </x-slot>
 
-                <a
-                    href="{{ route('contributions.create', ['back' => 'index']) }}"
-                    class="btn-primary"
-                >
-                    Record Contribution
-                </a>
+                        <x-slot name="content">
+                            @foreach ($browseTypePages as $typePage)
+                                <x-dropdown-link :href="$typePage['route']">
+                                    {{ $typePage['category']->name }}
+                                </x-dropdown-link>
+                            @endforeach
+                        </x-slot>
+                    </x-dropdown>
+                @endif
+
+                @if ($canManageFinance)
+                    <a
+                        href="{{ route('contribution-categories.index') }}"
+                        class="btn-secondary whitespace-nowrap px-3 py-2"
+                    >
+                        Manage Contribution Categories
+                    </a>
+
+                    <a
+                        href="{{ route('contributions.create', ['back' => 'index']) }}"
+                        class="btn-primary whitespace-nowrap px-3.5 py-2"
+                    >
+                        Record Contribution
+                    </a>
+                @endif
             </div>
         </div>
     </x-slot>
@@ -61,34 +91,34 @@
                 </div>
             @endif
 
-            <div class="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-                @foreach ($typePages as $typePage)
-                    <a href="{{ $typePage['route'] }}" class="app-panel-muted block p-5 transition duration-150 ease-in-out hover:border-slate-700 hover:bg-slate-900/90">
-                        <div class="flex items-start justify-between gap-4">
-                            <div>
-                                <p class="text-sm font-semibold text-slate-100">{{ $typePage['category']->name }}</p>
-                                <p class="mt-2 text-sm text-slate-400">
-                                    {{ $typePage['category']->requiresMonthlyCoverage() ? 'Open the dedicated tracker view built from covered months.' : 'Open the contribution list for this specific payment type.' }}
-                                </p>
+            @if ($featuredTypePage)
+                <a href="{{ $featuredTypePage['route'] }}" class="app-panel-muted block p-6 transition duration-150 ease-in-out hover:border-slate-700 hover:bg-slate-900/90">
+                    <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                        <div class="max-w-3xl">
+                            <div class="flex items-center gap-3">
+                                <h3 class="text-xl font-semibold text-slate-100">{{ $featuredTypePage['category']->name }}</h3>
+                                <span class="status-badge border-sky-500/30 bg-sky-500/15 text-sky-200">
+                                    Tracker
+                                </span>
                             </div>
-                            <span class="status-badge {{ $typePage['category']->requiresMonthlyCoverage() ? 'border-sky-500/30 bg-sky-500/15 text-sky-200' : 'status-inactive' }}">
-                                {{ $typePage['category']->requiresMonthlyCoverage() ? 'Tracker' : 'List' }}
-                            </span>
+                            <p class="mt-3 text-sm text-slate-400">
+                                Open the dedicated monthly dues tracker built from normalized covered-month records for clear yearly payment visibility.
+                            </p>
                         </div>
 
-                        <div class="mt-4 flex items-center justify-between border-t border-slate-800/80 pt-4">
-                            <div>
+                        <div class="grid gap-4 sm:grid-cols-2">
+                            <div class="rounded-2xl border border-slate-800/80 bg-slate-950/50 px-5 py-4">
                                 <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Posted Records</p>
-                                <p class="mt-1 text-lg font-semibold text-slate-100">{{ $typePage['active_count'] }}</p>
+                                <p class="mt-2 text-2xl font-semibold text-slate-100">{{ $featuredTypePage['active_count'] }}</p>
                             </div>
-                            <div class="text-right">
+                            <div class="rounded-2xl border border-slate-800/80 bg-slate-950/50 px-5 py-4">
                                 <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Posted Total</p>
-                                <p class="mt-1 text-lg font-semibold text-sky-200">@money($typePage['active_total'])</p>
+                                <p class="mt-2 text-2xl font-semibold text-sky-200">@money($featuredTypePage['active_total'])</p>
                             </div>
                         </div>
-                    </a>
-                @endforeach
-            </div>
+                    </div>
+                </a>
+            @endif
 
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <div class="app-panel-muted p-5">
@@ -149,9 +179,15 @@
                                     <tr class="{{ $contribution->status === 'voided' ? 'bg-slate-900/40 text-slate-400 hover:bg-slate-900/55' : '' }}">
                                         <td>{{ $contribution->payment_date->format('M d, Y') }}</td>
                                         <td>
-                                            <a href="{{ route('members.show', $contribution->member) }}" class="font-medium {{ $contribution->status === 'voided' ? 'text-slate-300 hover:text-slate-100' : 'text-sky-200 hover:text-sky-100' }}">
-                                                {{ $contribution->member->full_name }}
-                                            </a>
+                                            @if ($canViewMembers)
+                                                <a href="{{ route('members.show', $contribution->member) }}" class="font-medium {{ $contribution->status === 'voided' ? 'text-slate-300 hover:text-slate-100' : 'text-sky-200 hover:text-sky-100' }}">
+                                                    {{ $contribution->member->full_name }}
+                                                </a>
+                                            @else
+                                                <span class="font-medium {{ $contribution->status === 'voided' ? 'text-slate-300' : 'text-slate-100' }}">
+                                                    {{ $contribution->member->full_name }}
+                                                </span>
+                                            @endif
                                         </td>
                                         <td>{{ $contribution->category->name }}</td>
                                         <td class="{{ $contribution->status === 'voided' ? 'text-slate-300' : 'font-semibold text-sky-200' }}">@money($contribution->amount)</td>
@@ -173,14 +209,8 @@
                                             @endif
                                         </td>
                                         <td class="align-top">
-                                            @if ($contribution->status === 'active')
+                                            @if ($canManageFinance && $contribution->status === 'active')
                                                 <div class="flex flex-wrap gap-2">
-                                                    @if ($contribution->coverages->isEmpty() && ! $contribution->category->requiresMonthlyCoverage())
-                                                        <a href="{{ route('contributions.edit', $contribution) }}" class="btn-secondary-accent">
-                                                            Edit
-                                                        </a>
-                                                    @endif
-
                                                     <form
                                                         method="POST"
                                                         action="{{ route('contributions.void', $contribution) }}"
@@ -198,8 +228,10 @@
                                                         </button>
                                                     </form>
                                                 </div>
-                                            @else
+                                            @elseif ($contribution->status === 'voided')
                                                 <span class="text-xs text-slate-500">Already voided</span>
+                                            @else
+                                                <span class="text-xs text-slate-500">View only</span>
                                             @endif
                                         </td>
                                     </tr>
