@@ -18,8 +18,15 @@
     <body class="bg-slate-950 font-sans text-slate-100 antialiased">
         <div class="flex min-h-screen flex-col bg-slate-950 pt-6 text-slate-100 sm:pt-0">
             <div class="flex flex-1 flex-col items-center justify-center px-4 sm:px-6">
-                <a href="/">
-                    <x-application-logo class="h-20 w-20 fill-current text-sky-300" />
+                <a href="/" class="flex flex-col items-center text-center">
+                    <img
+                        src="{{ asset('images/logo.png') }}"
+                        alt="Bogo Eagles Finance Tracker logo"
+                        class="h-36 w-36 object-contain sm:h-44 sm:w-44"
+                    >
+                    <span class="mt-4 text-xs font-semibold uppercase tracking-[0.28em] text-slate-300 sm:text-sm">
+                        Cebu North Bogo Eagles Club
+                    </span>
                 </a>
 
                 <div class="mt-6 w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/95 px-6 py-4 shadow-2xl shadow-slate-950/40 sm:max-w-md">
