@@ -6,6 +6,7 @@ use App\Models\Member;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
 class MemberAccountProvisioningTest extends TestCase
@@ -42,13 +43,13 @@ class MemberAccountProvisioningTest extends TestCase
         $this->assertTrue(Hash::check($flash['temporary_password'], $user->password));
     }
 
-    public function test_president_can_access_member_creation_routes(): void
+    public function test_secretary_can_access_member_creation_routes(): void
     {
-        $president = User::factory()->role('president')->create();
+        $secretary = User::factory()->role('secretary')->create();
 
-        $this->actingAs($president)
+        $this->actingAs($secretary)
             ->post(route('members.store'), [
-                'email' => 'president-added@example.com',
+                'email' => 'secretary-added@example.com',
                 'first_name' => 'Leo',
                 'last_name' => 'Rivera',
                 'membership_status' => 'active',
@@ -107,5 +108,24 @@ class MemberAccountProvisioningTest extends TestCase
             ->assertRedirect();
 
         $this->assertFalse($user->fresh()->must_change_password);
+    }
+
+    public function test_inactive_account_cannot_log_in_and_profile_delete_route_is_disabled(): void
+    {
+        $user = User::factory()->create([
+            'email' => 'inactive.member@example.com',
+            'password' => Hash::make('TempPass123'),
+            'is_active' => false,
+            'role' => 'member',
+        ]);
+
+        $this->post(route('login'), [
+            'email' => 'inactive.member@example.com',
+            'password' => 'TempPass123',
+        ])
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+        $this->assertFalse(Route::has('profile.destroy'));
     }
 }

@@ -51,6 +51,7 @@
                                         <th>Name</th>
                                         <th>Email</th>
                                         <th>Role</th>
+                                        <th>Account Status</th>
                                         <th>Linked Member</th>
                                         <th>Club Position</th>
                                         <th>Action</th>
@@ -69,6 +70,11 @@
                                                 </span>
                                             </td>
                                             <td>
+                                                <span class="status-badge {{ $managedUser->is_active ? 'status-active' : 'status-inactive' }}">
+                                                    {{ $managedUser->is_active ? 'Active' : 'Inactive' }}
+                                                </span>
+                                            </td>
+                                            <td>
                                                 @if ($managedUser->member)
                                                     <a href="{{ route('members.show', $managedUser->member) }}" class="font-medium text-sky-300 transition hover:text-sky-200">
                                                         {{ $managedUser->member->full_name }}
@@ -79,9 +85,27 @@
                                             </td>
                                             <td>{{ $managedUser->member?->club_position ?? '--' }}</td>
                                             <td>
-                                                <a href="{{ route('users.edit', $managedUser) }}" class="btn-secondary-accent">
-                                                    Edit Role
-                                                </a>
+                                                <div class="flex flex-wrap gap-2">
+                                                    <a href="{{ route('users.edit', $managedUser) }}" class="btn-secondary-accent">
+                                                        Edit Role
+                                                    </a>
+
+                                                    @if (! $managedUser->isAdmin())
+                                                        <form method="POST" action="{{ route('users.update-status', $managedUser) }}">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="is_active" value="{{ $managedUser->is_active ? 0 : 1 }}">
+                                                            <button
+                                                                type="submit"
+                                                                class="{{ $managedUser->is_active ? 'inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-red-200 transition hover:bg-red-500/20' : 'btn-secondary' }}"
+                                                            >
+                                                                {{ $managedUser->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <span class="text-xs text-slate-500">Admin account</span>
+                                                    @endif
+                                                </div>
                                             </td>
                                         </tr>
                                     @endforeach

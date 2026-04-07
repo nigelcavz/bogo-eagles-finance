@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UpdateUserRoleRequest;
 use App\Models\ActivityLog;
 use App\Models\User;
+use App\Support\MemberAccountStatusSynchronizer;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
@@ -77,5 +79,65 @@ class UserManagementController extends Controller
         return redirect()
             ->route('users.edit', $user)
             ->with('success', 'User role updated successfully.');
+    }
+
+    public function updateStatus(Request $request, User $user): RedirectResponse
+    {
+        abort_unless($request->user()?->canManageUsers(), 403);
+
+        $validated = $request->validate([
+            'is_active' => ['required', 'boolean'],
+        ]);
+
+        if ($user->isAdmin()) {
+            return redirect()
+                ->route('users.index')
+                ->with('error', 'Admin accounts cannot be deactivated from this screen.');
+        }
+
+        $newActiveState = (bool) $validated['is_active'];
+
+        if ((bool) $user->is_active === $newActiveState) {
+            return redirect()
+                ->route('users.index')
+                ->with('success', $newActiveState
+                    ? 'Account is already active.'
+                    : 'Account is already inactive.');
+        }
+
+        DB::transaction(function () use ($request, $user, $newActiveState) {
+            $user->loadMissing('member');
+
+            $oldValues = [
+                'user_is_active' => (bool) $user->is_active,
+                'member_membership_status' => $user->member?->membership_status,
+            ];
+
+            MemberAccountStatusSynchronizer::syncUser($user, $newActiveState);
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => $newActiveState ? 'user_account_reactivated' : 'user_account_deactivated',
+                'module' => 'users',
+                'record_id' => $user->id,
+                'description' => $newActiveState
+                    ? 'User account and linked member profile were reactivated.'
+                    : 'User account and linked member profile were deactivated.',
+                'old_values' => $oldValues,
+                'new_values' => [
+                    'user_is_active' => (bool) $user->fresh()->is_active,
+                    'member_membership_status' => $user->fresh()->member?->membership_status,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+        });
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', $newActiveState
+                ? 'Account reactivated successfully.'
+                : 'Account deactivated successfully.');
     }
 }

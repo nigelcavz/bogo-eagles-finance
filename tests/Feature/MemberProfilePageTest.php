@@ -120,4 +120,32 @@ class MemberProfilePageTest extends TestCase
             ->get(route('members.self'))
             ->assertForbidden();
     }
+
+    public function test_authorized_officers_can_update_member_active_status(): void
+    {
+        $president = User::factory()->role('president')->create();
+        $vicePresident = User::factory()->role('vice_president')->create();
+        $secretary = User::factory()->role('secretary')->create();
+        $treasurer = User::factory()->role('treasurer')->create();
+
+        foreach ([$president, $vicePresident, $secretary, $treasurer] as $actor) {
+            $managedUser = User::factory()->role('member')->create([
+                'is_active' => true,
+            ]);
+
+            $member = Member::factory()->create([
+                'user_id' => $managedUser->id,
+                'membership_status' => 'active',
+            ]);
+
+            $this->actingAs($actor)
+                ->patch(route('members.update-status', $member), [
+                    'membership_status' => 'inactive',
+                ])
+                ->assertRedirect(route('members.show', $member));
+
+            $this->assertSame('inactive', $member->fresh()->membership_status);
+            $this->assertFalse($managedUser->fresh()->is_active);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 <x-app-layout>
     @php($canManageMembers = auth()->user()?->canManageMembers() ?? false)
+    @php($canManageMemberStatus = auth()->user()?->canManageMemberStatus() ?? false)
 
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -103,6 +104,20 @@
                                                     >
                                                         History
                                                     </a>
+                                                    @if ($canManageMemberStatus)
+                                                        <form method="POST" action="{{ route('members.update-status', $member) }}">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                                            <input type="hidden" name="membership_status" value="{{ $member->membership_status === 'active' ? 'inactive' : 'active' }}">
+                                                            <button
+                                                                type="submit"
+                                                                class="{{ $member->membership_status === 'active' ? 'inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-red-200 transition hover:bg-red-500/20' : 'btn-secondary' }}"
+                                                            >
+                                                                {{ $member->membership_status === 'active' ? 'Set Inactive' : 'Reactivate' }}
+                                                            </button>
+                                                        </form>
+                                                    @endif
                                                     @if ($canManageMembers)
                                                         <a
                                                             href="{{ route('members.edit', $member) }}"

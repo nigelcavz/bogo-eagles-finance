@@ -44,6 +44,12 @@ class UserRoleManagementTest extends TestCase
                 'role' => 'officer',
             ])
             ->assertForbidden();
+
+        $this->actingAs($treasurer)
+            ->patch(route('users.update-status', $managedUser), [
+                'is_active' => false,
+            ])
+            ->assertForbidden();
     }
 
     public function test_admin_can_update_role_and_linked_member_club_position_syncs(): void
@@ -69,6 +75,48 @@ class UserRoleManagementTest extends TestCase
             'action' => 'user_role_updated',
             'module' => 'users',
             'record_id' => $managedUser->id,
+        ]);
+    }
+
+    public function test_admin_can_deactivate_and_reactivate_user_account_with_linked_member_sync(): void
+    {
+        $admin = User::factory()->role('admin')->create();
+        $managedUser = User::factory()->role('member')->create([
+            'is_active' => true,
+        ]);
+        $member = Member::factory()->create([
+            'user_id' => $managedUser->id,
+            'membership_status' => 'active',
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('users.update-status', $managedUser), [
+                'is_active' => false,
+            ])
+            ->assertRedirect(route('users.index'));
+
+        $this->assertFalse($managedUser->fresh()->is_active);
+        $this->assertSame('inactive', $member->fresh()->membership_status);
+
+        $this->actingAs($admin)
+            ->patch(route('users.update-status', $managedUser), [
+                'is_active' => true,
+            ])
+            ->assertRedirect(route('users.index'));
+
+        $this->assertTrue($managedUser->fresh()->is_active);
+        $this->assertSame('active', $member->fresh()->membership_status);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'module' => 'users',
+            'record_id' => $managedUser->id,
+            'action' => 'user_account_deactivated',
+        ]);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'module' => 'users',
+            'record_id' => $managedUser->id,
+            'action' => 'user_account_reactivated',
         ]);
     }
 }

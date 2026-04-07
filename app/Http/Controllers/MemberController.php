@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\ContributionCoverage;
 use App\Models\Member;
 use App\Models\User;
+use App\Support\MemberAccountStatusSynchronizer;
 use App\Support\MemberClubPositionMapper;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\DB;
@@ -58,7 +59,7 @@ class MemberController extends Controller
             'birthdate' => ['nullable', 'date'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string'],
-            'membership_status' => ['required', 'in:active,inactive,suspended'],
+            'membership_status' => ['required', 'in:active,inactive'],
             'joined_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
@@ -78,7 +79,7 @@ class MemberController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($temporaryPassword),
                 'role' => User::ROLE_MEMBER,
-                'is_active' => true,
+                'is_active' => MemberAccountStatusSynchronizer::userActiveForMembershipStatus($validated['membership_status']),
                 'must_change_password' => true,
             ]);
 
@@ -170,22 +171,82 @@ class MemberController extends Controller
             'birthdate' => ['nullable', 'date'],
             'contact_number' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string'],
-            'membership_status' => ['required', 'in:active,inactive,suspended'],
+            'membership_status' => ['required', 'in:active,inactive'],
             'joined_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $linkedUser = $member->user()->first();
+        DB::transaction(function () use ($member, $validated) {
+            $linkedUser = $member->user()->first();
 
-        if ($linkedUser && ! $linkedUser->isAdmin()) {
-            $validated['club_position'] = MemberClubPositionMapper::forRole($linkedUser->role) ?? $validated['club_position'] ?? null;
-        }
+            if ($linkedUser && ! $linkedUser->isAdmin()) {
+                $validated['club_position'] = MemberClubPositionMapper::forRole($linkedUser->role) ?? $validated['club_position'] ?? null;
+                $linkedUser->forceFill([
+                    'is_active' => MemberAccountStatusSynchronizer::userActiveForMembershipStatus($validated['membership_status']),
+                ])->save();
+            }
 
-        $member->update($validated);
+            $member->update($validated);
+        });
 
         return redirect()
             ->route('members.index')
             ->with('success', 'Member updated successfully.');
+    }
+
+    public function updateStatus(Request $request, Member $member): RedirectResponse
+    {
+        abort_unless($request->user()?->canManageMemberStatus(), 403);
+
+        $validated = $request->validate([
+            'membership_status' => ['required', 'in:active,inactive'],
+        ]);
+
+        $newActiveState = $validated['membership_status'] === MemberAccountStatusSynchronizer::STATUS_ACTIVE;
+
+        if ($member->membership_status === $validated['membership_status']
+            && (! $member->user || (bool) $member->user->is_active === $newActiveState)) {
+            return redirect()
+                ->to($request->input('redirect_to', route('members.show', $member)))
+                ->with('success', $newActiveState
+                    ? 'Member is already active.'
+                    : 'Member is already inactive.');
+        }
+
+        DB::transaction(function () use ($request, $member, $newActiveState) {
+            $member->loadMissing('user');
+
+            $oldValues = [
+                'membership_status' => $member->membership_status,
+                'user_is_active' => $member->user?->is_active,
+            ];
+
+            MemberAccountStatusSynchronizer::syncMember($member, $newActiveState);
+
+            ActivityLog::create([
+                'user_id' => $request->user()->id,
+                'action' => $newActiveState ? 'member_reactivated' : 'member_deactivated',
+                'module' => 'members',
+                'record_id' => $member->id,
+                'description' => $newActiveState
+                    ? 'Member profile and linked account were reactivated.'
+                    : 'Member profile and linked account were set to inactive.',
+                'old_values' => $oldValues,
+                'new_values' => [
+                    'membership_status' => $member->fresh()->membership_status,
+                    'user_is_active' => $member->fresh()->user?->is_active,
+                ],
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'created_at' => now(),
+            ]);
+        });
+
+        return redirect()
+            ->to($request->input('redirect_to', route('members.show', $member)))
+            ->with('success', $newActiveState
+                ? 'Member reactivated successfully.'
+                : 'Member set to inactive successfully.');
     }
 
     private function buildMemberProfileViewData(Request $request, Member $member, bool $isSelfService): array

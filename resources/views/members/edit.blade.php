@@ -49,7 +49,6 @@
                                 >
                                     <option value="active" {{ old('membership_status', $member->membership_status) === 'active' ? 'selected' : '' }}>Active</option>
                                     <option value="inactive" {{ old('membership_status', $member->membership_status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                                    <option value="suspended" {{ old('membership_status', $member->membership_status) === 'suspended' ? 'selected' : '' }}>Suspended</option>
                                 </select>
                             </div>
 

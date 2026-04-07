@@ -26,6 +26,7 @@ Route::middleware(['auth', 'password.change'])->group(function () {
         Route::get('/users', [UserManagementController::class, 'index'])->name('users.index');
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}/role', [UserManagementController::class, 'update'])->name('users.update-role');
+        Route::patch('/users/{user}/status', [UserManagementController::class, 'updateStatus'])->name('users.update-status');
     });
 
     Route::middleware(['role:' . implode(',', User::memberViewerRoles())])->group(function () {
@@ -38,6 +39,10 @@ Route::middleware(['auth', 'password.change'])->group(function () {
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/members/{member}/edit', [MemberController::class, 'edit'])->name('members.edit');
         Route::put('/members/{member}', [MemberController::class, 'update'])->name('members.update');
+    });
+
+    Route::middleware(['role:' . implode(',', User::memberStatusManagerRoles())])->group(function () {
+        Route::patch('/members/{member}/status', [MemberController::class, 'updateStatus'])->name('members.update-status');
     });
 
     Route::middleware(['role:' . implode(',', User::financeViewerRoles())])->group(function () {
@@ -85,7 +90,6 @@ Route::middleware(['auth', 'password.change'])->group(function () {
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';
