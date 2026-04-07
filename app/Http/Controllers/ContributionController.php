@@ -183,7 +183,7 @@ class ContributionController extends Controller
             $contribution = Contribution::create([
                 'member_id' => $validated['member_id'],
                 'contribution_category_id' => $validated['contribution_category_id'],
-                'amount' => $validated['amount'],
+                'amount' => $this->resolveContributionAmount($validated, $category),
                 'payment_date' => $validated['payment_date'],
                 'reference_number' => $validated['reference_number'] ?? null,
                 'notes' => $notes,
@@ -587,5 +587,19 @@ class ContributionController extends Controller
             'url' => route('contributions.index'),
             'label' => 'Back to Contributions',
         ];
+    }
+
+    private function resolveContributionAmount(array $validated, ContributionCategory $category): string|float|int
+    {
+        if (! $category->requiresMonthlyCoverage()) {
+            return $validated['amount'];
+        }
+
+        $monthCount = collect($validated['coverage_months'] ?? [])
+            ->map(fn ($month) => (int) $month)
+            ->unique()
+            ->count();
+
+        return $category->calculateMonthlyCoverageAmount($monthCount, $validated['payment_date'] ?? null);
     }
 }

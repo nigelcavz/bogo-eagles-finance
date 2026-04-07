@@ -26,7 +26,7 @@
                         </div>
 
                         <div>
-                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300/90">Bogo Eagles' Club</p>
+                            <p class="text-xs font-semibold uppercase tracking-[0.35em] text-amber-300/90">Cebu North Bogo Eagles Club</p>
                             <h1 class="text-sm font-semibold text-slate-100 sm:text-base">Finance Tracker</h1>
                         </div>
                     </div>
@@ -107,7 +107,7 @@
                                     </div>
 
                                     <div>
-                                        <p class="text-lg font-semibold text-white">Bogo Eagles Finance Tracker</p>
+                                        <p class="text-lg font-semibold text-white">CNBEC Finance Tracker</p>
                                         <p class="text-sm text-slate-400">A centralized system for responsible club fund management.</p>
                                     </div>
                                 </div>

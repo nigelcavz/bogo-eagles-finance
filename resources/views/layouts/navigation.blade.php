@@ -30,9 +30,10 @@
                             {{ __('Contributions') }}
                         </x-nav-link>
 
-                        <x-nav-link :href="route('contribution-categories.index')" :active="request()->routeIs('contribution-categories.*')">
-                            {{ __('Contribution Categories') }}
+                        <x-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
+                            {{ __('Expenses') }}
                         </x-nav-link>
+
                     @endif
                 </div>
             </div>
@@ -99,9 +100,10 @@
                     {{ __('Contributions') }}
                 </x-responsive-nav-link>
 
-                <x-responsive-nav-link :href="route('contribution-categories.index')" :active="request()->routeIs('contribution-categories.*')">
-                    {{ __('Contribution Categories') }}
+                <x-responsive-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
+                    {{ __('Expenses') }}
                 </x-responsive-nav-link>
+
             @endif
         </div>
 

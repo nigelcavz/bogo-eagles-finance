@@ -225,14 +225,76 @@
             const otherDescriptionWrapper = document.getElementById('other-description-wrapper');
             const monthlyCoverageWrapper = document.getElementById('monthly-coverage-wrapper');
             const coverageYearInput = document.getElementById('coverage_year');
+            const paymentDateInput = document.getElementById('payment_date');
             const monthCheckboxes = Array.from(document.querySelectorAll('.coverage-month-checkbox'));
             const availabilityUrl = @json($availabilityUrl);
             const members = {{ \Illuminate\Support\Js::from($memberSearchOptions) }};
             let monthlyAvailabilityRequest = 0;
 
-            if (!amountInput || !categorySelect || !otherDescriptionWrapper || !monthlyCoverageWrapper || !memberSearchInput || !memberIdInput || !coverageYearInput || !memberResultsPanel || !memberResultsList || !memberResultsEmpty) {
+            if (!amountInput || !categorySelect || !otherDescriptionWrapper || !monthlyCoverageWrapper || !memberSearchInput || !memberIdInput || !coverageYearInput || !paymentDateInput || !memberResultsPanel || !memberResultsList || !memberResultsEmpty) {
                 return;
             }
+
+            const getSelectedCategoryOption = () => categorySelect.options[categorySelect.selectedIndex] ?? null;
+
+            const getSelectedCategoryName = () => getSelectedCategoryOption()?.text?.trim().toLowerCase() ?? '';
+
+            const isMonthlyDuesCategory = () => getSelectedCategoryName() === 'monthly dues/contributions';
+
+            const getDefaultAmount = () => {
+                const rawAmount = getSelectedCategoryOption()?.dataset.defaultAmount;
+                const parsed = Number.parseFloat(rawAmount ?? '');
+
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+
+            const getSelectedMonthlyCoverageCount = () => monthCheckboxes
+                .filter((checkbox) => checkbox.checked && !checkbox.disabled)
+                .length;
+
+            const paymentDateMonth = () => {
+                if (!paymentDateInput.value || !paymentDateInput.value.includes('-')) {
+                    return null;
+                }
+
+                return Number.parseInt(paymentDateInput.value.split('-')[1], 10) || null;
+            };
+
+            const formatAmount = (value) => Number.isFinite(value) ? value.toFixed(2) : '';
+
+            const calculateMonthlyDueAmount = () => {
+                const baseAmount = getDefaultAmount();
+
+                if (!baseAmount) {
+                    return '';
+                }
+
+                const selectedMonthCount = getSelectedMonthlyCoverageCount();
+                const effectiveMonthCount = selectedMonthCount > 0 ? selectedMonthCount : 1;
+
+                if (selectedMonthCount === 12 && paymentDateMonth() === 1) {
+                    return formatAmount(baseAmount * 10);
+                }
+
+                return formatAmount(baseAmount * effectiveMonthCount);
+            };
+
+            const syncAmountInput = () => {
+                if (isMonthlyDuesCategory()) {
+                    const monthlyAmount = calculateMonthlyDueAmount();
+
+                    if (monthlyAmount !== '') {
+                        amountInput.value = monthlyAmount;
+                    }
+
+                    return;
+                }
+
+                if (!amountInput.value) {
+                    const defaultAmount = getDefaultAmount();
+                    amountInput.value = defaultAmount ? formatAmount(defaultAmount) : '';
+                }
+            };
 
             const hideMemberResults = () => {
                 memberResultsPanel.classList.add('hidden');
@@ -254,13 +316,29 @@
 
             const renderMemberResults = () => {
                 const searchValue = memberSearchInput.value.trim().toLowerCase();
-                const filteredMembers = searchValue === ''
-                    ? members.slice(0, 8)
-                    : members.filter((member) =>
+
+                if (searchValue === '') {
+                    hideMemberResults();
+                    memberResultsEmpty.classList.add('hidden');
+                    memberResultsList.innerHTML = '';
+                    return;
+                }
+
+                const startsWithMatches = members.filter((member) =>
+                    member.label.toLowerCase().startsWith(searchValue)
+                    || member.name.toLowerCase().startsWith(searchValue)
+                    || (member.member_code || '').toLowerCase().startsWith(searchValue)
+                );
+
+                const containsMatches = members.filter((member) =>
+                    !startsWithMatches.includes(member) && (
                         member.label.toLowerCase().includes(searchValue)
                         || member.name.toLowerCase().includes(searchValue)
                         || (member.member_code || '').toLowerCase().includes(searchValue)
-                    ).slice(0, 12);
+                    )
+                );
+
+                const filteredMembers = [...startsWithMatches, ...containsMatches].slice(0, 12);
 
                 memberResultsList.innerHTML = '';
 
@@ -302,7 +380,7 @@
             };
 
             const toggleCategorySections = () => {
-                const selectedText = categorySelect.options[categorySelect.selectedIndex]?.text?.trim().toLowerCase();
+                const selectedText = getSelectedCategoryName();
 
                 otherDescriptionWrapper.classList.toggle('hidden', selectedText !== 'other');
                 monthlyCoverageWrapper.classList.toggle('hidden', selectedText !== 'monthly dues/contributions');
@@ -325,11 +403,13 @@
                     wrapper?.classList.toggle('bg-emerald-500/10', isCovered);
                     wrapper?.classList.toggle('text-emerald-200', isCovered);
                 });
+
+                syncAmountInput();
             };
 
             const refreshMonthlyAvailability = async () => {
                 const requestId = ++monthlyAvailabilityRequest;
-                const selectedText = categorySelect.options[categorySelect.selectedIndex]?.text?.trim().toLowerCase();
+                const selectedText = getSelectedCategoryName();
 
                 applyCoveredMonths([]);
 
@@ -372,19 +452,8 @@
             };
 
             categorySelect?.addEventListener('change', () => {
-                if (amountInput.value) {
-                    toggleCategorySections();
-                    refreshMonthlyAvailability();
-                    return;
-                }
-
-                const defaultAmount = categorySelect.options[categorySelect.selectedIndex]?.dataset.defaultAmount;
-
-                if (defaultAmount) {
-                    amountInput.value = defaultAmount;
-                }
-
                 toggleCategorySections();
+                syncAmountInput();
                 refreshMonthlyAvailability();
             });
 
@@ -395,7 +464,9 @@
             });
 
             memberSearchInput.addEventListener('focus', () => {
-                renderMemberResults();
+                if (memberSearchInput.value.trim() !== '') {
+                    renderMemberResults();
+                }
             });
 
             memberSearchInput.addEventListener('blur', () => {
@@ -407,9 +478,15 @@
 
             coverageYearInput.addEventListener('change', refreshMonthlyAvailability);
             coverageYearInput.addEventListener('input', refreshMonthlyAvailability);
+            paymentDateInput.addEventListener('change', syncAmountInput);
+            paymentDateInput.addEventListener('input', syncAmountInput);
+            monthCheckboxes.forEach((checkbox) => {
+                checkbox.addEventListener('change', syncAmountInput);
+            });
 
             syncMemberSelection();
             toggleCategorySections();
+            syncAmountInput();
             refreshMonthlyAvailability();
         });
     </script>

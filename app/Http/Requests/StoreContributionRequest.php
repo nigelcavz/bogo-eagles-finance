@@ -10,6 +10,38 @@ use Illuminate\Validation\Validator;
 
 class StoreContributionRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $categoryId = $this->input('contribution_category_id');
+
+        if (! $categoryId) {
+            return;
+        }
+
+        $category = ContributionCategory::query()->find($categoryId);
+
+        if (! $category?->requiresMonthlyCoverage()) {
+            return;
+        }
+
+        $months = collect($this->input('coverage_months', []))
+            ->filter(fn ($month) => $month !== null && $month !== '')
+            ->map(fn ($month) => (int) $month)
+            ->unique()
+            ->values();
+
+        if ($months->isEmpty() || blank($this->input('payment_date'))) {
+            return;
+        }
+
+        $this->merge([
+            'amount' => $category->calculateMonthlyCoverageAmount(
+                $months->count(),
+                $this->input('payment_date')
+            ),
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null
@@ -113,6 +145,17 @@ class StoreContributionRequest extends FormRequest
                     $duplicateMonths->map(fn (int $month) => now()->setMonth($month)->startOfMonth()->format('M'))->implode(', ') .
                     '.'
                 );
+            }
+
+            $expectedAmount = $category->calculateMonthlyCoverageAmount(
+                $months->unique()->count(),
+                $this->input('payment_date')
+            );
+
+            if ((string) $this->input('amount') !== $expectedAmount) {
+                $this->merge([
+                    'amount' => $expectedAmount,
+                ]);
             }
         });
     }

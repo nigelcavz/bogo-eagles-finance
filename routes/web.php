@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ContributionCategoryController;
 use App\Http\Controllers\ContributionController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,13 @@ Route::middleware(['auth'])->group(function () {
             ->name('contributions.update');
         Route::patch('/contributions/{contribution}/void', [ContributionController::class, 'void'])
             ->name('contributions.void');
+
+        Route::get('/expenses', [ExpenseController::class, 'index'])->name('expenses.index');
+        Route::get('/expenses/create', [ExpenseController::class, 'create'])->name('expenses.create');
+        Route::post('/expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+        Route::get('/expenses/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+        Route::put('/expenses/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+        Route::patch('/expenses/{expense}/void', [ExpenseController::class, 'void'])->name('expenses.void');
     });
 
     Route::middleware(['role:member'])->group(function () {

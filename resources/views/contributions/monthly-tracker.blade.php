@@ -96,20 +96,22 @@
                                     <tr>
                                         <td>
                                             <div class="font-medium text-slate-100">{{ $row['member']->full_name }}</div>
-                                            <div class="text-xs text-slate-400">{{ $row['member']->member_code ?: 'No member code' }}</div>
+                                            @if ($row['member']->member_code)
+                                                <div class="text-xs text-slate-400">{{ $row['member']->member_code }}</div>
+                                            @endif
                                         </td>
                                         @foreach ($row['months'] as $month)
-                                            <td>
+                                            <td class="text-center">
                                                 @if ($month['duplicate'])
-                                                    <span class="inline-flex rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-200">
+                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-amber-200">
                                                         {{ $month['count'] }}x
                                                     </span>
                                                 @elseif ($month['covered'])
-                                                    <span class="inline-flex rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-200">
+                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-emerald-200">
                                                         Paid
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex rounded-full border border-slate-700 bg-slate-800/80 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                                                    <span class="inline-flex min-w-[3.25rem] items-center justify-center whitespace-nowrap rounded-full border border-slate-700/80 bg-slate-800/70 px-2.5 py-1 text-[11px] font-semibold uppercase leading-none tracking-wide text-slate-400">
                                                         --
                                                     </span>
                                                 @endif

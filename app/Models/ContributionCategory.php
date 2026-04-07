@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,5 +48,22 @@ class ContributionCategory extends Model
     public function requiresOtherDescription(): bool
     {
         return $this->name === self::OTHER_NAME;
+    }
+
+    public function monthlyBaseAmount(): float
+    {
+        return (float) ($this->default_amount ?? 0);
+    }
+
+    public function calculateMonthlyCoverageAmount(int $monthCount, mixed $paymentDate = null): string
+    {
+        $monthCount = max(0, $monthCount);
+        $baseAmount = $this->monthlyBaseAmount();
+
+        if ($monthCount === 12 && $paymentDate !== null && Carbon::parse($paymentDate)->month === 1) {
+            return number_format($baseAmount * 10, 2, '.', '');
+        }
+
+        return number_format($baseAmount * $monthCount, 2, '.', '');
     }
 }
