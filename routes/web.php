@@ -3,6 +3,7 @@
 use App\Http\Controllers\ContributionCategoryController;
 use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserManagementController;
@@ -27,6 +28,7 @@ Route::middleware(['auth', 'password.change'])->group(function () {
         Route::get('/users/{user}/edit', [UserManagementController::class, 'edit'])->name('users.edit');
         Route::put('/users/{user}/role', [UserManagementController::class, 'update'])->name('users.update-role');
         Route::patch('/users/{user}/status', [UserManagementController::class, 'updateStatus'])->name('users.update-status');
+        Route::get('/activity-tracker', [ActivityLogController::class, 'index'])->name('activity-logs.index');
     });
 
     Route::middleware(['role:' . implode(',', User::memberViewerRoles())])->group(function () {

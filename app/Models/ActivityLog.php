@@ -2,9 +2,13 @@
 
 namespace App\Models;
 
+use App\Support\Currency;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 class ActivityLog extends Model
 {
@@ -37,5 +41,91 @@ class ActivityLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function changeSummary(): array
+    {
+        $oldValues = $this->old_values ?? [];
+        $newValues = $this->new_values ?? [];
+
+        if (! is_array($oldValues)) {
+            $oldValues = [];
+        }
+
+        if (! is_array($newValues)) {
+            $newValues = [];
+        }
+
+        $keys = collect(array_keys($oldValues))
+            ->merge(array_keys($newValues))
+            ->unique()
+            ->values();
+
+        return $keys
+            ->map(function (string|int $key) use ($oldValues, $newValues) {
+                $field = (string) $key;
+                $from = Arr::exists($oldValues, $field) ? $oldValues[$field] : null;
+                $to = Arr::exists($newValues, $field) ? $newValues[$field] : null;
+
+                if ($from === $to) {
+                    return null;
+                }
+
+                return [
+                    'field' => Str::headline($field),
+                    'from' => $this->formatAuditValue($from, $field),
+                    'to' => $this->formatAuditValue($to, $field),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function formattedModule(): string
+    {
+        return Str::headline($this->module);
+    }
+
+    public function formattedAction(): string
+    {
+        return Str::headline($this->action);
+    }
+
+    private function formatAuditValue(mixed $value, ?string $field = null): string
+    {
+        if ($value === null || $value === '') {
+            return '--';
+        }
+
+        if (is_bool($value)) {
+            if ($field === 'is_active' || $field === 'user_is_active') {
+                return $value ? 'Active' : 'Inactive';
+            }
+
+            return $value ? 'Yes' : 'No';
+        }
+
+        if (is_numeric($value) && $field !== null && Str::contains($field, 'amount')) {
+            return Currency::format($value);
+        }
+
+        if (is_array($value)) {
+            return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '[complex value]';
+        }
+
+        if (is_string($value)) {
+            if ($field !== null && (Str::endsWith($field, '_at') || Str::contains($field, 'date'))) {
+                try {
+                    return Carbon::parse($value)->format('M d, Y h:i A');
+                } catch (\Throwable) {
+                    // Fall through to the original string.
+                }
+            }
+
+            return Str::headline($value) === $value ? $value : (string) $value;
+        }
+
+        return (string) $value;
     }
 }

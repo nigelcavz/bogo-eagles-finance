@@ -74,6 +74,10 @@
                             <x-dropdown-link :href="route('users.index')">
                                 {{ __('User Roles') }}
                             </x-dropdown-link>
+
+                            <x-dropdown-link :href="route('activity-logs.index')">
+                                {{ __('Activity Tracker') }}
+                            </x-dropdown-link>
                         @endif
 
                         <!-- Authentication -->
@@ -147,6 +151,10 @@
                 @if ($canManageUsers)
                     <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                         {{ __('User Roles') }}
+                    </x-responsive-nav-link>
+
+                    <x-responsive-nav-link :href="route('activity-logs.index')" :active="request()->routeIs('activity-logs.*')">
+                        {{ __('Activity Tracker') }}
                     </x-responsive-nav-link>
                 @endif
 
