@@ -139,6 +139,17 @@ class User extends Authenticatable
         ];
     }
 
+    public static function announcementManagerRoles(): array
+    {
+        return [
+            self::ROLE_ADMIN,
+            self::ROLE_PRESIDENT,
+            self::ROLE_VICE_PRESIDENT,
+            self::ROLE_SECRETARY,
+            self::ROLE_TREASURER,
+        ];
+    }
+
     public static function memberViewerRoles(): array
     {
         return [
@@ -212,6 +223,11 @@ class User extends Authenticatable
     public function canManageFinance(): bool
     {
         return $this->is_active && $this->hasAnyRole(self::financeManagerRoles());
+    }
+
+    public function canManageAnnouncements(): bool
+    {
+        return $this->is_active && $this->hasAnyRole(self::announcementManagerRoles());
     }
 
     public function canViewOwnMemberProfile(): bool

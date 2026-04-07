@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\ContributionCategoryController;
 use App\Http\Controllers\ContributionController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\MemberController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserManagementController;
@@ -15,9 +17,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', 'password.change'])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::middleware(['role:' . User::ROLE_ADMIN])->group(function () {
         Route::get('/admin-only', function () {
@@ -45,6 +45,15 @@ Route::middleware(['auth', 'password.change'])->group(function () {
 
     Route::middleware(['role:' . implode(',', User::memberStatusManagerRoles())])->group(function () {
         Route::patch('/members/{member}/status', [MemberController::class, 'updateStatus'])->name('members.update-status');
+    });
+
+    Route::middleware(['role:' . implode(',', User::announcementManagerRoles())])->group(function () {
+        Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+        Route::get('/announcements/create', [AnnouncementController::class, 'create'])->name('announcements.create');
+        Route::post('/announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+        Route::get('/announcements/{announcement}/edit', [AnnouncementController::class, 'edit'])->name('announcements.edit');
+        Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+        Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
     });
 
     Route::middleware(['role:' . implode(',', User::financeViewerRoles())])->group(function () {

@@ -5,6 +5,7 @@
         $canViewMembers = $user?->canViewMembers() ?? false;
         $canManageFinance = $user?->canManageFinance() ?? false;
         $canViewFinance = $user?->canViewFinance() ?? false;
+        $canManageAnnouncements = $user?->canManageAnnouncements() ?? false;
         $canViewOwnMemberProfile = $user?->canViewOwnMemberProfile() ?? false;
         $isMembersNavActive = request()->routeIs('members.*') && ! request()->routeIs('members.self');
     @endphp
@@ -69,6 +70,12 @@
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Account Settings') }}
                         </x-dropdown-link>
+
+                        @if ($canManageAnnouncements)
+                            <x-dropdown-link :href="route('announcements.index')">
+                                {{ __('Announcements') }}
+                            </x-dropdown-link>
+                        @endif
 
                         @if ($canManageUsers)
                             <x-dropdown-link :href="route('users.index')">
@@ -147,6 +154,12 @@
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Account Settings') }}
                 </x-responsive-nav-link>
+
+                @if ($canManageAnnouncements)
+                    <x-responsive-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
+                        {{ __('Announcements') }}
+                    </x-responsive-nav-link>
+                @endif
 
                 @if ($canManageUsers)
                     <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
