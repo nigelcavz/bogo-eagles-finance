@@ -27,7 +27,7 @@
 
                             setInterval(() => {
                                 this.currentIndex = (this.currentIndex + 1) % this.notifications.length;
-                            }, 4500);
+                            }, 5000);
                         },
                     }"
                     x-init="startRotation()"

@@ -34,21 +34,19 @@ class DashboardController extends Controller
 
     private function notificationsForUser(User $user): array
     {
+        $notifications = collect();
+
         if ($user->canManageFinance()) {
-            $financeNotifications = $this->buildFinanceNotifications();
-
-            if ($financeNotifications->isNotEmpty()) {
-                return $financeNotifications->values()->all();
-            }
+            $notifications = $notifications->concat($this->buildFinanceNotifications());
         }
 
-        $eventNotifications = $this->buildUpcomingEventNotifications();
+        $notifications = $notifications
+            ->concat($this->buildUpcomingEventNotifications())
+            ->concat($this->buildGeneralNotifications());
 
-        if ($eventNotifications->isNotEmpty()) {
-            return $eventNotifications->values()->all();
-        }
-
-        return $this->buildGeneralNotifications()
+        return $notifications
+            ->filter(fn ($notification) => filled($notification['message'] ?? null))
+            ->unique(fn ($notification) => ($notification['icon'] ?? 'info') . '|' . ($notification['message'] ?? ''))
             ->values()
             ->all();
     }

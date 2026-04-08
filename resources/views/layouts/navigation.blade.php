@@ -26,12 +26,18 @@
 
     <!-- Primary Navigation Menu -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid h-16 grid-cols-[auto_1fr_auto] items-center gap-4">
+        <div class="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4">
             <div class="flex items-center">
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
-                    <a href="{{ route('dashboard') }}">
-                        <x-application-logo class="block h-9 w-auto fill-current text-sky-300" />
+                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
+                        <x-application-logo class="block h-10 w-auto fill-current text-sky-300" />
+                        <div class="hidden min-w-0 sm:block">
+                            <p class="text-[0.72rem] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-100">
+                                <span class="block">Cebu North Bogo</span>
+                                <span class="mt-0.5 block text-slate-300">Eagles Club</span>
+                            </p>
+                        </div>
                     </a>
                 </div>
             </div>
