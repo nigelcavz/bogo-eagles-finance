@@ -52,10 +52,44 @@
 
             <div class="app-panel">
                 <div class="panel-header">
-                    <div>
+                    <div class="min-w-0">
                         <h3 class="section-heading">Member Directory</h3>
                         <p class="section-subheading">Manage membership records and access history quickly.</p>
                     </div>
+                    <form
+                        method="GET"
+                        action="{{ route('members.index') }}"
+                        class="w-full sm:ml-auto sm:w-auto"
+                    >
+                        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <label for="member-search" class="sr-only">Search members</label>
+                            <div class="relative min-w-0 sm:w-80">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 1 0 3.473 9.765l2.63 2.63a.75.75 0 1 0 1.06-1.06l-2.629-2.63A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0A4 4 0 0 1 5 9Z" clip-rule="evenodd" />
+                                    </svg>
+                                </span>
+                                <input
+                                    id="member-search"
+                                    name="search"
+                                    type="search"
+                                    value="{{ $search ?? '' }}"
+                                    placeholder="Search first or last name"
+                                    autocomplete="off"
+                                    oninput="clearTimeout(this._memberSearchTimer); this._memberSearchTimer = setTimeout(() => this.form.requestSubmit(), 220)"
+                                    class="block w-full rounded-xl border border-slate-800 bg-slate-950/70 py-2.5 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-500 focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                >
+                            </div>
+                            @if (! empty($search))
+                                <a
+                                    href="{{ route('members.index') }}"
+                                    class="btn-secondary justify-center whitespace-nowrap"
+                                >
+                                    Clear
+                                </a>
+                            @endif
+                        </div>
+                    </form>
                 </div>
                 <div class="panel-body text-gray-900">
                     @if ($members->count())
@@ -138,7 +172,9 @@
                             {{ $members->links() }}
                         </div>
                     @else
-                        <p class="text-gray-600">No members found yet.</p>
+                        <p class="text-gray-600">
+                            {{ ! empty($search) ? 'No members matched your search.' : 'No members found yet.' }}
+                        </p>
                     @endif
                 </div>
             </div>

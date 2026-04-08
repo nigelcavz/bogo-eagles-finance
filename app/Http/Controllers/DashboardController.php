@@ -333,6 +333,12 @@ class DashboardController extends Controller
 
         return ActivityLog::query()
             ->with('user')
+            ->where(function ($query) {
+                $query->whereDoesntHave('user')
+                    ->orWhereHas('user', function ($userQuery) {
+                        $userQuery->where('role', '!=', User::ROLE_ADMIN);
+                    });
+            })
             ->latest('created_at')
             ->latest('id')
             ->take(5)

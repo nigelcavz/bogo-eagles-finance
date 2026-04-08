@@ -19,7 +19,11 @@ class MemberController extends Controller
 {
     public function index(): View
     {
-        abort_unless(request()->user()?->canViewMembers(), 403);
+        $request = request();
+
+        abort_unless($request->user()?->canViewMembers(), 403);
+
+        $search = trim((string) $request->string('search'));
 
         $members = Member::query()
             ->with('user')
@@ -29,11 +33,20 @@ class MemberController extends Controller
                         $userQuery->where('role', '!=', User::ROLE_ADMIN);
                     });
             })
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nameQuery) use ($search) {
+                    $nameQuery->where('first_name', 'like', '%' . $search . '%')
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhereRaw("TRIM(CONCAT(first_name, ' ', last_name)) like ?", ['%' . $search . '%'])
+                        ->orWhereRaw("TRIM(CONCAT(last_name, ' ', first_name)) like ?", ['%' . $search . '%']);
+                });
+            })
             ->orderBy('last_name')
             ->orderBy('first_name')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('members.index', compact('members'));
+        return view('members.index', compact('members', 'search'));
     }
 
     public function create(): View

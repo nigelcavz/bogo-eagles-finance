@@ -1,4 +1,17 @@
-<nav x-data="{ open: false }" class="relative z-40 bg-slate-900/65 backdrop-blur">
+<nav
+    x-data="{
+        open: false,
+        scrolled: false,
+        handleScroll() {
+            this.scrolled = window.scrollY > 8;
+        },
+    }"
+    x-init="handleScroll(); window.addEventListener('scroll', () => handleScroll(), { passive: true })"
+    class="sticky top-0 z-40 border-b border-transparent bg-slate-950/75 transition-all duration-200"
+    :class="scrolled
+        ? 'backdrop-blur-md supports-[backdrop-filter]:bg-slate-950/70 border-slate-800/80 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.95)]'
+        : 'backdrop-blur-0 supports-[backdrop-filter]:bg-slate-950/55'"
+>
     @php
         $user = Auth::user();
         $canManageUsers = $user?->canManageUsers() ?? false;

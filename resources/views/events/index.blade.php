@@ -64,9 +64,9 @@
                                     @foreach ($monthWeeks as $week)
                                         <tr>
                                             @foreach ($week as $day)
-                                                <td class="h-44 align-top border-b border-r border-slate-800/80 bg-slate-950/50 p-3 last:border-r-0 {{ $loop->parent->last ? 'last:border-b-0' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-55' }}">
+                                                <td class="h-44 align-top border-b border-r border-slate-800/80 bg-slate-950/50 p-3 last:border-r-0 {{ $loop->parent->last ? 'last:border-b-0' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-55' }} {{ $day['isToday'] ? 'bg-amber-300/8 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.28),0_0_28px_-16px_rgba(251,191,36,0.55)]' : '' }}">
                                                     <div class="mb-3 flex items-center justify-between">
-                                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold {{ $day['isToday'] ? 'bg-sky-500/20 text-sky-200' : 'text-slate-200' }}">
+                                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold {{ $day['isToday'] ? 'bg-amber-300/20 text-amber-100' : 'text-slate-200' }}">
                                                             {{ $day['date']->day }}
                                                         </span>
                                                         <span class="text-[11px] uppercase tracking-[0.16em] text-slate-500">{{ $day['date']->format('M') }}</span>
