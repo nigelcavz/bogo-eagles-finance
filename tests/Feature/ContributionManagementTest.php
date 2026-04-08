@@ -270,6 +270,118 @@ class ContributionManagementTest extends TestCase
         ]);
     }
 
+    public function test_monthly_tracker_batch_save_creates_records_only_on_submit(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $memberA = Member::factory()->create(['first_name' => 'Alice', 'last_name' => 'Rivera']);
+        $memberB = Member::factory()->create(['first_name' => 'Ben', 'last_name' => 'Santos']);
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 700,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('contributions.types.tracker-store', [
+            'type' => 'monthly-dues',
+        ]), [
+            'payment_date' => '2026-04-15',
+            'coverage_year' => 2026,
+            'selections' => [
+                [
+                    'member_id' => $memberA->id,
+                    'months' => [4, 5],
+                ],
+                [
+                    'member_id' => $memberB->id,
+                    'months' => [4],
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
+
+        $memberAContribution = Contribution::query()
+            ->where('member_id', $memberA->id)
+            ->where('contribution_category_id', $category->id)
+            ->firstOrFail();
+
+        $memberBContribution = Contribution::query()
+            ->where('member_id', $memberB->id)
+            ->where('contribution_category_id', $category->id)
+            ->firstOrFail();
+
+        $this->assertSame('1400.00', number_format((float) $memberAContribution->amount, 2, '.', ''));
+        $this->assertSame('700.00', number_format((float) $memberBContribution->amount, 2, '.', ''));
+        $this->assertSame('2026-04-15', optional($memberAContribution->payment_date)->toDateString());
+        $this->assertSame('2026-04-15', optional($memberBContribution->payment_date)->toDateString());
+        $this->assertSame('monthly', $memberAContribution->coverage_type);
+        $this->assertSame('monthly', $memberBContribution->coverage_type);
+        $this->assertSame('active', $memberAContribution->status);
+        $this->assertSame('active', $memberBContribution->status);
+        $this->assertSame($user->id, $memberAContribution->created_by);
+        $this->assertSame($user->id, $memberBContribution->created_by);
+
+        $this->assertDatabaseHas('contribution_coverages', [
+            'member_id' => $memberA->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 5,
+        ]);
+
+        $this->assertDatabaseHas('contribution_coverages', [
+            'member_id' => $memberB->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 4,
+        ]);
+    }
+
+    public function test_monthly_tracker_batch_save_blocks_duplicate_months_without_creating_partial_records(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create(['first_name' => 'Alice', 'last_name' => 'Rivera']);
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 700,
+        ]);
+
+        $existingContribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 700.00,
+            'payment_date' => '2026-04-01',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        ContributionCoverage::create([
+            'contribution_id' => $existingContribution->id,
+            'member_id' => $member->id,
+            'coverage_year' => 2026,
+            'coverage_month' => 4,
+            'coverage_label' => 'Apr 2026',
+        ]);
+
+        $response = $this->from(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]))
+            ->actingAs($user)
+            ->post(route('contributions.types.tracker-store', [
+                'type' => 'monthly-dues',
+            ]), [
+                'payment_date' => '2026-04-15',
+                'coverage_year' => 2026,
+                'selections' => [
+                    [
+                        'member_id' => $member->id,
+                        'months' => [4, 5],
+                    ],
+                ],
+            ]);
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
+        $response->assertSessionHasErrors('selections');
+
+        $this->assertDatabaseCount('contributions', 1);
+        $this->assertDatabaseCount('contribution_coverages', 1);
+    }
+
     public function test_duplicate_monthly_coverage_is_blocked_without_partial_records(): void
     {
         $user = User::factory()->role('treasurer')->create();

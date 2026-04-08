@@ -1,6 +1,7 @@
 @php
     $canManage = auth()->user()?->canManageFinance() ?? false;
     $canViewMembers = auth()->user()?->canViewMembers() ?? false;
+    $browseTypePages = collect($typePages ?? [])->reject(fn ($typePage) => $typePage['type'] === $type)->values();
 @endphp
 
 <x-app-layout>
@@ -15,10 +16,33 @@
                 </p>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <a href="{{ route('contributions.index') }}" class="btn-secondary">
                     All Contributions
                 </a>
+                @if ($browseTypePages->isNotEmpty())
+                    <x-dropdown align="right" width="64">
+                        <x-slot name="trigger">
+                            <button
+                                type="button"
+                                class="btn-secondary inline-flex items-center gap-1.5 whitespace-nowrap px-3 py-2"
+                            >
+                                <span>Browse Types</span>
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                                </svg>
+                            </button>
+                        </x-slot>
+
+                        <x-slot name="content">
+                            @foreach ($browseTypePages as $typePage)
+                                <x-dropdown-link :href="$typePage['route']">
+                                    {{ $typePage['category']->name }}
+                                </x-dropdown-link>
+                            @endforeach
+                        </x-slot>
+                    </x-dropdown>
+                @endif
                 @if ($canManage)
                     <a href="{{ route('contributions.create', ['contribution_category_id' => $category->id, 'back' => 'type', 'type' => $type, ...($category->requiresMonthlyCoverage() ? ['year' => request('year', now()->year)] : [])]) }}" class="btn-primary">
                         Record {{ \Illuminate\Support\Str::limit($category->name, 18, '') }}

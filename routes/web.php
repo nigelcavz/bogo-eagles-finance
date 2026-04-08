@@ -87,6 +87,8 @@ Route::middleware(['auth', 'password.change'])->group(function () {
 
         Route::get('/contributions/monthly-availability', [ContributionController::class, 'monthlyAvailability'])
             ->name('contributions.monthly-availability');
+        Route::post('/contributions/type/{type}/tracker', [ContributionController::class, 'storeTrackerSelections'])
+            ->name('contributions.types.tracker-store');
         Route::get('/contributions/create', [ContributionController::class, 'create'])->name('contributions.create');
         Route::post('/contributions', [ContributionController::class, 'store'])->name('contributions.store');
         Route::patch('/contributions/{contribution}/void', [ContributionController::class, 'void'])

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreMonthlyTrackerSelectionsRequest;
 use App\Http\Requests\StoreContributionRequest;
 use App\Http\Requests\UpdateContributionRequest;
 use App\Models\ActivityLog;
@@ -17,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ContributionController extends Controller
 {
@@ -257,6 +259,112 @@ class ContributionController extends Controller
                 : 'Contribution recorded successfully.');
     }
 
+    public function storeTrackerSelections(StoreMonthlyTrackerSelectionsRequest $request, string $type): RedirectResponse
+    {
+        abort_unless($request->user()?->canManageFinance(), 403);
+
+        $category = $this->resolveCategoryFromType($type);
+        abort_unless($category->requiresMonthlyCoverage(), 404);
+
+        $validated = $request->validated();
+        $coverageYear = (int) $validated['coverage_year'];
+        $paymentDate = $validated['payment_date'];
+        $selections = collect($validated['selections'])
+            ->map(function (array $selection) {
+                $months = array_map('intval', $selection['months'] ?? []);
+                $months = array_values(array_unique($months));
+                sort($months);
+
+                return [
+                    'member_id' => (int) $selection['member_id'],
+                    'months' => $months,
+                ];
+            })
+            ->filter(fn (array $selection) => ! empty($selection['months']))
+            ->values();
+
+        $duplicateSelections = $this->duplicateTrackerSelections($selections, $coverageYear, $category);
+
+        if ($duplicateSelections->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'selections' => $duplicateSelections->implode(' '),
+            ]);
+        }
+
+        $createdCount = 0;
+        $savedMonthCount = 0;
+
+        DB::transaction(function () use (
+            $request,
+            $category,
+            $paymentDate,
+            $coverageYear,
+            $selections,
+            &$createdCount,
+            &$savedMonthCount
+        ) {
+            foreach ($selections as $selection) {
+                $months = collect($selection['months']);
+
+                if ($months->isEmpty()) {
+                    continue;
+                }
+
+                $contribution = Contribution::create([
+                    'member_id' => $selection['member_id'],
+                    'contribution_category_id' => $category->id,
+                    'amount' => $category->calculateMonthlyCoverageAmount($months->count(), $paymentDate),
+                    'payment_date' => $paymentDate,
+                    'coverage_type' => 'monthly',
+                    'status' => 'active',
+                    'created_by' => $request->user()->id,
+                ]);
+
+                foreach ($months as $month) {
+                    $contribution->coverages()->create([
+                        'member_id' => $selection['member_id'],
+                        'coverage_year' => $coverageYear,
+                        'coverage_month' => $month,
+                        'coverage_label' => self::MONTH_LABELS[$month] . ' ' . $coverageYear,
+                    ]);
+                }
+
+                $this->logActivity(
+                    $request,
+                    'contribution_created',
+                    $contribution->id,
+                    'Contribution recorded from the monthly tracker.',
+                    null,
+                    [
+                        'member_id' => $contribution->member_id,
+                        'contribution_category_id' => $contribution->contribution_category_id,
+                        'amount' => $contribution->amount,
+                        'payment_date' => optional($contribution->payment_date)?->toDateString(),
+                        'status' => $contribution->status,
+                        'coverage_year' => $coverageYear,
+                        'coverage_months' => $selection['months'],
+                    ]
+                );
+
+                $createdCount++;
+                $savedMonthCount += $months->count();
+            }
+        });
+
+        return redirect()
+            ->route('contributions.types.show', ['type' => $type, 'year' => $coverageYear])
+            ->with(
+                'success',
+                sprintf(
+                    'Saved monthly dues for %d %s across %d %s.',
+                    $createdCount,
+                    Str::plural('member', $createdCount),
+                    $savedMonthCount,
+                    Str::plural('month', $savedMonthCount)
+                )
+            );
+    }
+
     public function edit(Contribution $contribution): View|RedirectResponse
     {
         return redirect()
@@ -370,6 +478,7 @@ class ContributionController extends Controller
             'sort' => $sort,
             'status' => $status,
             'contributions' => $contributions,
+            'typePages' => $this->buildTypePages(),
         ]);
     }
 
@@ -450,7 +559,61 @@ class ContributionController extends Controller
             'partialCount' => $trackerRows->where('status', 'partial')->count(),
             'unpaidCount' => $trackerRows->where('status', 'unpaid')->count(),
             'duplicateMemberCount' => $duplicateMemberCount,
+            'trackerSelectionAction' => route('contributions.types.tracker-store', ['type' => $type]),
+            'trackerDefaultPaymentDate' => old('payment_date', now()->toDateString()),
+            'typePages' => $this->buildTypePages($year),
+            'trackerInitialSelections' => collect(old('selections', []))
+                ->mapWithKeys(function (array $selection) {
+                    $memberId = isset($selection['member_id']) ? (int) $selection['member_id'] : null;
+
+                    if (! $memberId) {
+                        return [];
+                    }
+
+                    return [
+                        $memberId => collect($selection['months'] ?? [])
+                            ->map(fn ($month) => (int) $month)
+                            ->unique()
+                            ->sort()
+                            ->values()
+                            ->all(),
+                    ];
+                })
+                ->all(),
         ]);
+    }
+
+    private function duplicateTrackerSelections(
+        Collection $selections,
+        int $coverageYear,
+        ContributionCategory $category
+    ): Collection {
+        return $selections->map(function (array $selection) use ($coverageYear, $category) {
+            $duplicateMonths = ContributionCoverage::query()
+                ->join('contributions', 'contributions.id', '=', 'contribution_coverages.contribution_id')
+                ->where('contributions.status', 'active')
+                ->where('contributions.contribution_category_id', $category->id)
+                ->where('contribution_coverages.member_id', $selection['member_id'])
+                ->where('contribution_coverages.coverage_year', $coverageYear)
+                ->whereIn('contribution_coverages.coverage_month', $selection['months'])
+                ->pluck('contribution_coverages.coverage_month')
+                ->map(fn ($month) => (int) $month)
+                ->unique()
+                ->sort()
+                ->values();
+
+            if ($duplicateMonths->isEmpty()) {
+                return null;
+            }
+
+            $member = Member::query()->find($selection['member_id']);
+
+            return sprintf(
+                '%s already has active monthly dues coverage for: %s.',
+                $member?->full_name ?? 'This member',
+                $duplicateMonths->map(fn (int $month) => self::MONTH_LABELS[$month])->implode(', ')
+            );
+        })->filter()->values();
     }
 
     private function applyStandardSort(Builder $query, string $sort): void
@@ -520,21 +683,23 @@ class ContributionController extends Controller
         return $type !== false ? $type : Str::slug(str_replace('/', ' ', $category->name));
     }
 
-    private function buildTypePages(): Collection
+    private function buildTypePages(?int $monthlyTrackerYear = null): Collection
     {
+        $monthlyTrackerYear ??= now()->year;
+
         $categories = ContributionCategory::query()
             ->active()
-            ->whereIn('name', array_values(self::TYPE_MAP))
+            ->orderByRaw(
+                "case when name = ? then 0 else 1 end",
+                [ContributionCategory::MONTHLY_DUES_NAME]
+            )
+            ->orderBy('name')
             ->get()
             ->keyBy('name');
 
-        return collect(self::TYPE_MAP)
-            ->map(function (string $categoryName, string $type) use ($categories) {
-                $category = $categories->get($categoryName);
-
-                if (! $category) {
-                    return null;
-                }
+        return $categories
+            ->map(function (ContributionCategory $category) use ($monthlyTrackerYear) {
+                $type = $this->typeForCategory($category);
 
                 $activeQuery = Contribution::query()
                     ->where('contribution_category_id', $category->id)
@@ -545,13 +710,12 @@ class ContributionController extends Controller
                     'category' => $category,
                     'route' => route('contributions.types.show', [
                         'type' => $type,
-                        ...($category->requiresMonthlyCoverage() ? ['year' => now()->year] : []),
+                        ...($category->requiresMonthlyCoverage() ? ['year' => $monthlyTrackerYear] : []),
                     ]),
                     'active_count' => (clone $activeQuery)->count(),
                     'active_total' => (clone $activeQuery)->sum('amount'),
                 ];
             })
-            ->filter()
             ->values();
     }
 
