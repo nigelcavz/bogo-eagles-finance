@@ -160,7 +160,83 @@
 
                 <div class="panel-body">
                     @if ($contributions->count())
-                        <div class="overflow-x-auto">
+                        <div class="mobile-record-list">
+                            @foreach ($contributions as $contribution)
+                                <article class="mobile-record-card {{ $contribution->status === 'voided' ? 'opacity-85' : '' }}">
+                                    <div class="mobile-record-header">
+                                        <div class="min-w-0">
+                                            @if ($canViewMembers)
+                                                <a href="{{ route('members.show', $contribution->member) }}" class="mobile-record-title text-sky-200 hover:text-sky-100">
+                                                    {{ $contribution->member->full_name }}
+                                                </a>
+                                            @else
+                                                <h4 class="mobile-record-title">{{ $contribution->member->full_name }}</h4>
+                                            @endif
+                                            <p class="mt-1 text-sm text-slate-400">{{ $contribution->category->name }}</p>
+                                        </div>
+
+                                        <span class="status-badge {{ $contribution->status === 'voided' ? 'border-red-500/30 bg-red-500/15 text-red-200' : 'status-active' }}">
+                                            {{ $contribution->status === 'active' ? 'Posted' : ucfirst($contribution->status) }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mobile-kv">
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Amount</div>
+                                            <div class="mobile-kv-value font-semibold text-sky-200">@money($contribution->amount)</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Payment Date</div>
+                                            <div class="mobile-kv-value">{{ $contribution->payment_date->format('M d, Y') }}</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Coverage</div>
+                                            <div class="mobile-kv-value">
+                                                {{ $contribution->coverages->sortBy(fn ($coverage) => sprintf('%04d-%02d', $coverage->coverage_year, $coverage->coverage_month))->map(fn ($coverage) => sprintf('%04d-%02d', $coverage->coverage_year, $coverage->coverage_month))->implode(', ') ?: '--' }}
+                                            </div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Reference</div>
+                                            <div class="mobile-kv-value">{{ $contribution->reference_number ?: '--' }}</div>
+                                        </div>
+                                    </div>
+
+                                    @if ($contribution->status === 'voided')
+                                        <p class="mt-4 text-xs text-red-200">
+                                            Voided by {{ $contribution->voider->name ?? 'Unknown user' }}: {{ $contribution->void_reason }}
+                                        </p>
+                                    @endif
+
+                                    <div class="mobile-action-row">
+                                        @if ($canManageFinance && $contribution->status === 'active')
+                                            <form
+                                                method="POST"
+                                                action="{{ route('contributions.void', $contribution) }}"
+                                                onsubmit="const reason = prompt('Reason for voiding this contribution:'); if (!reason) { return false; } this.querySelector('input[name=void_reason]').value = reason;"
+                                            >
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                                <input type="hidden" name="void_reason">
+                                                <button
+                                                    type="submit"
+                                                    class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-200 shadow-sm transition duration-150 ease-in-out hover:bg-red-500/20"
+                                                >
+                                                    Void
+                                                </button>
+                                            </form>
+                                        @elseif ($contribution->status === 'voided')
+                                            <span class="text-xs text-slate-500">Already voided</span>
+                                        @else
+                                            <span class="text-xs text-slate-500">View only</span>
+                                        @endif
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="data-table">
                             <thead class="bg-gray-100">
                                 <tr>
@@ -238,7 +314,8 @@
                                 @endforeach
                             </tbody>
                         </table>
-                    </div>
+                            </div>
+                        </div>
 
                     <div class="mt-6">
                         {{ $contributions->links() }}

@@ -103,6 +103,10 @@
                                 <div class="field-stack">
                                     <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
                                     <input id="amount" name="amount" type="number" step="0.01" min="0.01" value="{{ old('amount') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                                    <p id="monthly-discount-summary" class="hidden text-xs text-sky-200">
+                                        Full-year Monthly Dues paid in January receive a 2-month discount: 12 months of coverage are charged as 10 months using this contribution type's monthly amount.
+                                    </p>
+                                    <p id="monthly-discount-live" class="hidden text-xs text-slate-400"></p>
                                 </div>
 
                                 <div class="field-stack">
@@ -143,6 +147,9 @@
                                                 <label for="coverage_year" class="block text-sm font-medium text-gray-700">Monthly Coverage Year</label>
                                                 <p class="mt-1 text-xs text-gray-500">
                                                     Monthly Dues/Contributions must record the exact covered months. Duplicate active month coverage is blocked.
+                                                </p>
+                                                <p class="mt-2 text-xs text-sky-200">
+                                                    Discount rule: if all 12 months are paid with a January contribution date, the member receives 2 months off and is charged only 10 times the monthly contribution amount for this type.
                                                 </p>
                                             </div>
 
@@ -224,6 +231,8 @@
             const memberResultsEmpty = document.getElementById('member-results-empty');
             const otherDescriptionWrapper = document.getElementById('other-description-wrapper');
             const monthlyCoverageWrapper = document.getElementById('monthly-coverage-wrapper');
+            const monthlyDiscountSummary = document.getElementById('monthly-discount-summary');
+            const monthlyDiscountLive = document.getElementById('monthly-discount-live');
             const coverageYearInput = document.getElementById('coverage_year');
             const paymentDateInput = document.getElementById('payment_date');
             const monthCheckboxes = Array.from(document.querySelectorAll('.coverage-month-checkbox'));
@@ -231,7 +240,7 @@
             const members = {{ \Illuminate\Support\Js::from($memberSearchOptions) }};
             let monthlyAvailabilityRequest = 0;
 
-            if (!amountInput || !categorySelect || !otherDescriptionWrapper || !monthlyCoverageWrapper || !memberSearchInput || !memberIdInput || !coverageYearInput || !paymentDateInput || !memberResultsPanel || !memberResultsList || !memberResultsEmpty) {
+            if (!amountInput || !categorySelect || !otherDescriptionWrapper || !monthlyCoverageWrapper || !monthlyDiscountSummary || !monthlyDiscountLive || !memberSearchInput || !memberIdInput || !coverageYearInput || !paymentDateInput || !memberResultsPanel || !memberResultsList || !memberResultsEmpty) {
                 return;
             }
 
@@ -261,6 +270,21 @@
             };
 
             const formatAmount = (value) => Number.isFinite(value) ? value.toFixed(2) : '';
+
+            const formatCurrency = (value) => {
+                const parsed = Number.parseFloat(value);
+
+                if (!Number.isFinite(parsed)) {
+                    return '';
+                }
+
+                return new Intl.NumberFormat('en-PH', {
+                    style: 'currency',
+                    currency: 'PHP',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                }).format(parsed);
+            };
 
             const calculateMonthlyDueAmount = () => {
                 const baseAmount = getDefaultAmount();
@@ -294,6 +318,34 @@
                     const defaultAmount = getDefaultAmount();
                     amountInput.value = defaultAmount ? formatAmount(defaultAmount) : '';
                 }
+            };
+
+            const syncMonthlyDiscountMessage = () => {
+                const monthlyDuesSelected = isMonthlyDuesCategory();
+
+                monthlyDiscountSummary.classList.toggle('hidden', !monthlyDuesSelected);
+                monthlyDiscountLive.classList.toggle('hidden', !monthlyDuesSelected);
+
+                if (!monthlyDuesSelected) {
+                    monthlyDiscountLive.textContent = '';
+                    return;
+                }
+
+                const baseAmount = getDefaultAmount();
+                const selectedMonthCount = getSelectedMonthlyCoverageCount();
+                const isJanuaryFullYearDiscount = selectedMonthCount === 12 && paymentDateMonth() === 1;
+
+                if (!baseAmount) {
+                    monthlyDiscountLive.textContent = '';
+                    return;
+                }
+
+                if (isJanuaryFullYearDiscount) {
+                    monthlyDiscountLive.textContent = `Discount applied: 12 months selected in January. Regular total is ${formatCurrency(baseAmount * 12)}, but only ${formatCurrency(baseAmount * 10)} will be charged.`;
+                    return;
+                }
+
+                monthlyDiscountLive.textContent = `Monthly dues are calculated from this contribution type's monthly amount of ${formatCurrency(baseAmount)} per covered month.`;
             };
 
             const hideMemberResults = () => {
@@ -454,6 +506,7 @@
             categorySelect?.addEventListener('change', () => {
                 toggleCategorySections();
                 syncAmountInput();
+                syncMonthlyDiscountMessage();
                 refreshMonthlyAvailability();
             });
 
@@ -478,15 +531,25 @@
 
             coverageYearInput.addEventListener('change', refreshMonthlyAvailability);
             coverageYearInput.addEventListener('input', refreshMonthlyAvailability);
-            paymentDateInput.addEventListener('change', syncAmountInput);
-            paymentDateInput.addEventListener('input', syncAmountInput);
+            paymentDateInput.addEventListener('change', () => {
+                syncAmountInput();
+                syncMonthlyDiscountMessage();
+            });
+            paymentDateInput.addEventListener('input', () => {
+                syncAmountInput();
+                syncMonthlyDiscountMessage();
+            });
             monthCheckboxes.forEach((checkbox) => {
-                checkbox.addEventListener('change', syncAmountInput);
+                checkbox.addEventListener('change', () => {
+                    syncAmountInput();
+                    syncMonthlyDiscountMessage();
+                });
             });
 
             syncMemberSelection();
             toggleCategorySections();
             syncAmountInput();
+            syncMonthlyDiscountMessage();
             refreshMonthlyAvailability();
         });
     </script>

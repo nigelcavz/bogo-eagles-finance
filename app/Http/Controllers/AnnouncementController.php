@@ -36,6 +36,7 @@ class AnnouncementController extends Controller
 
         return view('announcements.create', [
             'events' => $this->eventOptions(),
+            'canManageCalendar' => $request->user()?->canManageCalendar() ?? false,
         ]);
     }
 
@@ -44,8 +45,18 @@ class AnnouncementController extends Controller
         abort_unless($request->user()?->canManageAnnouncements(), 403);
 
         $validated = $request->validated();
+        $shouldCreateEvent = (bool) ($validated['create_event'] ?? false);
+
+        if ($shouldCreateEvent) {
+            abort_unless($request->user()?->canManageCalendar(), 403);
+        }
 
         DB::transaction(function () use ($request, $validated) {
+            if ((bool) ($validated['create_event'] ?? false)) {
+                $event = $this->createLinkedEvent($request, $validated);
+                $validated['event_id'] = $event->id;
+            }
+
             $announcement = Announcement::create($this->announcementPayload($validated, $request->user()->id));
 
             $this->logAnnouncementActivity(
@@ -156,6 +167,40 @@ class AnnouncementController extends Controller
             'is_published' => (bool) $announcement->is_published,
             'published_at' => optional($announcement->published_at)?->toDateTimeString(),
         ];
+    }
+
+    private function createLinkedEvent(Request $request, array $validated): Event
+    {
+        $event = Event::create([
+            'title' => $validated['event_title'],
+            'description' => $validated['event_description'] ?? null,
+            'event_date' => $validated['event_date'],
+            'start_time' => $validated['event_start_time'] ?? null,
+            'end_time' => $validated['event_end_time'] ?? null,
+            'location' => $validated['event_location'] ?? null,
+            'created_by' => $request->user()->id,
+        ]);
+
+        ActivityLog::create([
+            'user_id' => $request->user()->id,
+            'action' => 'event_created',
+            'module' => 'events',
+            'record_id' => $event->id,
+            'description' => 'Calendar event created from announcement flow.',
+            'old_values' => null,
+            'new_values' => [
+                'title' => $event->title,
+                'event_date' => $event->event_date?->toDateString(),
+                'start_time' => $event->start_time,
+                'end_time' => $event->end_time,
+                'location' => $event->location,
+            ],
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'created_at' => now(),
+        ]);
+
+        return $event;
     }
 
     private function eventOptions()

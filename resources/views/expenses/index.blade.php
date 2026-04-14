@@ -92,7 +92,79 @@
 
                 <div class="panel-body">
                     @if ($expenses->count())
-                        <div class="overflow-x-auto">
+                        <div class="mobile-record-list">
+                            @foreach ($expenses as $expense)
+                                <article class="mobile-record-card">
+                                    <div class="mobile-record-header">
+                                        <div class="min-w-0">
+                                            <h4 class="mobile-record-title">{{ $expense->category->name }}</h4>
+                                            <p class="mt-1 text-sm text-slate-400">{{ $expense->description }}</p>
+                                            <p class="mt-2 text-sm font-medium text-slate-300">{{ $expense->payee_name }}</p>
+                                        </div>
+
+                                        <span class="status-badge {{ $expense->status === 'voided' ? 'border-red-500/30 bg-red-500/15 text-red-200' : 'status-active' }}">
+                                            {{ $expense->status === 'active' ? 'Posted' : ucfirst($expense->status) }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mobile-kv">
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Amount</div>
+                                            <div class="mobile-kv-value font-semibold text-sky-200">@money($expense->amount)</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Expense Date</div>
+                                            <div class="mobile-kv-value">{{ $expense->expense_date?->format('M d, Y') ?? '--' }}</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Reference</div>
+                                            <div class="mobile-kv-value">{{ $expense->reference_number ?: '--' }}</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Posted By</div>
+                                            <div class="mobile-kv-value">{{ $expense->creator->name ?? 'Unknown user' }}</div>
+                                        </div>
+                                    </div>
+
+                                    @if ($expense->notes)
+                                        <div class="mt-4 rounded-xl border border-slate-800/70 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-300">
+                                            {{ $expense->notes }}
+                                        </div>
+                                    @endif
+
+                                    @if ($expense->status === 'voided')
+                                        <p class="mt-4 text-xs text-red-200">
+                                            Voided by {{ $expense->voider->name ?? 'Unknown user' }}: {{ $expense->void_reason }}
+                                        </p>
+                                    @endif
+
+                                    <div class="mobile-action-row">
+                                        @if (auth()->user()?->canManageFinance() && $expense->status === 'active')
+                                            <form
+                                                method="POST"
+                                                action="{{ route('expenses.void', $expense) }}"
+                                                onsubmit="const reason = prompt('Reason for voiding this expense:'); if (!reason) { return false; } this.querySelector('input[name=void_reason]').value = reason;"
+                                            >
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+                                                <input type="hidden" name="void_reason">
+                                                <button type="submit" class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-200 shadow-sm transition duration-150 ease-in-out hover:bg-red-500/20">
+                                                    Void
+                                                </button>
+                                            </form>
+                                        @elseif ($expense->status === 'voided')
+                                            <span class="text-xs text-slate-500">Already voided</span>
+                                        @else
+                                            <span class="text-xs text-slate-500">View only</span>
+                                        @endif
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -166,6 +238,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="mt-6">

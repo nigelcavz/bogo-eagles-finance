@@ -1,3 +1,44 @@
+@php
+    $coverageDisplay = static function ($coverage): array {
+        $contribution = $coverage->contribution;
+        $category = $contribution?->category;
+
+        if (! $contribution || ! $category) {
+            return [
+                'kind' => 'amount',
+                'value' => null,
+            ];
+        }
+
+        $isJanuaryFullYearDiscount = $category->requiresMonthlyCoverage()
+            && (int) ($contribution->coverages_count ?? 0) === 12
+            && $contribution->payment_date?->month === 1
+            && (float) $contribution->amount === (float) $category->calculateMonthlyCoverageAmount(12, $contribution->payment_date);
+
+        if ($isJanuaryFullYearDiscount && in_array((int) $coverage->coverage_month, [11, 12], true)) {
+            return [
+                'kind' => 'discounted',
+                'label' => 'Discounted',
+                'note' => 'January full-year 2-month discount',
+            ];
+        }
+
+        if ($category->requiresMonthlyCoverage() && (float) $category->monthlyBaseAmount() > 0) {
+            return [
+                'kind' => 'amount',
+                'value' => $category->monthlyBaseAmount(),
+            ];
+        }
+
+        return [
+            'kind' => 'amount',
+            'value' => (int) ($contribution->coverages_count ?? 0) > 0
+                ? ((float) $contribution->amount / (int) $contribution->coverages_count)
+                : (float) $contribution->amount,
+        ];
+    };
+@endphp
+
 <div class="page-shell">
     <div class="page-content max-w-7xl">
         @if (session('success'))
@@ -109,12 +150,50 @@
                 </div>
             </div>
 
-            <div class="app-panel lg:col-span-2">
+            <div id="coverage-history" class="app-panel lg:col-span-2">
                 <div class="panel-header">
-                    <div>
+                    <div class="min-w-0">
                         <h3 class="text-lg font-semibold text-slate-100">Monthly Dues Coverage History</h3>
                         <p class="mt-1 text-sm text-slate-400">Coverage periods are listed from newest to oldest using the normalized monthly tracker records.</p>
                     </div>
+                    <form method="GET" action="{{ url()->current() }}" class="w-full lg:ml-auto lg:w-auto">
+                        <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-end">
+                            @if (request()->filled('contributions_page'))
+                                <input type="hidden" name="contributions_page" value="{{ request('contributions_page') }}">
+                            @endif
+                            <div class="field-stack lg:w-64">
+                                <label for="coverage_search" class="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Search</label>
+                                <input
+                                    id="coverage_search"
+                                    name="coverage_search"
+                                    type="search"
+                                    value="{{ $coverageSearch ?? '' }}"
+                                    placeholder="Jan 2026 or 2026"
+                                    class="block w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 shadow-sm placeholder:text-slate-500 focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                >
+                            </div>
+                            <div class="field-stack lg:w-44">
+                                <label for="coverage_month" class="block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Month</label>
+                                <input
+                                    id="coverage_month"
+                                    name="coverage_month"
+                                    type="month"
+                                    value="{{ $coverageMonth ?? '' }}"
+                                    class="block w-full rounded-xl border border-slate-800 bg-slate-900/80 px-3 py-2 text-sm text-slate-100 shadow-sm focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                >
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="submit" class="btn-primary justify-center whitespace-nowrap">
+                                    Search
+                                </button>
+                                @if (filled($coverageSearch ?? null) || filled($coverageMonth ?? null))
+                                    <a href="{{ url()->current() }}" class="btn-secondary justify-center whitespace-nowrap">
+                                        Reset
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    </form>
                 </div>
                 <div class="panel-body">
                     @if ($coverageHistory->count())
@@ -131,13 +210,23 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($coverageHistory as $coverage)
+                                        @php($coverageAmount = $coverageDisplay($coverage))
                                         <tr class="{{ $coverage->contribution?->status === 'voided' ? 'bg-slate-900/40 text-slate-400 hover:bg-slate-900/55' : '' }}">
                                             <td>{{ $coverage->coverage_label }}</td>
                                             <td>{{ $coverage->contribution?->payment_date?->format('M d, Y') ?: '--' }}</td>
                                             <td>{{ $coverage->contribution?->category?->name ?: '--' }}</td>
                                             <td class="{{ $coverage->contribution?->status === 'voided' ? 'text-slate-300' : 'font-semibold text-sky-200' }}">
                                                 @if ($coverage->contribution)
-                                                    @money($coverage->contribution->coverages_count > 0 ? ((float) $coverage->contribution->amount / $coverage->contribution->coverages_count) : $coverage->contribution->amount)
+                                                    @if (($coverageAmount['kind'] ?? null) === 'discounted')
+                                                        <span class="inline-flex items-center rounded-full border border-amber-500/30 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200">
+                                                            {{ $coverageAmount['label'] }}
+                                                        </span>
+                                                        <p class="mt-1 text-[11px] font-normal text-amber-100/80">
+                                                            {{ $coverageAmount['note'] }}
+                                                        </p>
+                                                    @else
+                                                        @money($coverageAmount['value'])
+                                                    @endif
                                                 @else
                                                     --
                                                 @endif
@@ -157,7 +246,11 @@
                             {{ $coverageHistory->links() }}
                         </div>
                     @else
-                        <p class="text-sm text-slate-400">No monthly dues coverage history is recorded for this member yet.</p>
+                        <p class="text-sm text-slate-400">
+                            {{ filled($coverageSearch ?? null) || filled($coverageMonth ?? null)
+                                ? 'No monthly dues coverage records matched your search.'
+                                : 'No monthly dues coverage history is recorded for this member yet.' }}
+                        </p>
                     @endif
                 </div>
             </div>

@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Support\MemberAccountStatusSynchronizer;
 use App\Support\MemberClubPositionMapper;
 use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\RedirectResponse;
@@ -265,6 +266,8 @@ class MemberController extends Controller
     private function buildMemberProfileViewData(Request $request, Member $member, bool $isSelfService): array
     {
         $member->loadMissing('user');
+        $coverageSearch = trim((string) $request->string('coverage_search'));
+        $coverageMonth = trim((string) $request->string('coverage_month'));
 
         $contributions = $member->contributions()
             ->with(['category', 'creator', 'voider', 'coverages'])
@@ -281,9 +284,22 @@ class MemberController extends Controller
                 },
             ])
             ->where('member_id', $member->id)
+            ->when($coverageSearch !== '', function (Builder $query) use ($coverageSearch) {
+                $query->where(function (Builder $searchQuery) use ($coverageSearch) {
+                    $searchQuery->where('coverage_label', 'like', '%' . $coverageSearch . '%')
+                        ->orWhere('coverage_year', 'like', '%' . $coverageSearch . '%');
+                });
+            })
+            ->when($coverageMonth !== '' && preg_match('/^\d{4}-\d{2}$/', $coverageMonth), function (Builder $query) use ($coverageMonth) {
+                [$year, $month] = array_map('intval', explode('-', $coverageMonth));
+
+                $query->where('coverage_year', $year)
+                    ->where('coverage_month', $month);
+            })
             ->orderByDesc('coverage_year')
             ->orderByDesc('coverage_month')
-            ->paginate(12, ['*'], 'coverages_page')
+            ->paginate(10, ['*'], 'coverages_page')
+            ->fragment('coverage-history')
             ->withQueryString();
 
         $activeContributionTotal = $member->contributions()
@@ -307,6 +323,8 @@ class MemberController extends Controller
             'activeCoverageCount' => $activeCoverageCount,
             'linkedUser' => $member->user,
             'isSelfService' => $isSelfService,
+            'coverageSearch' => $coverageSearch,
+            'coverageMonth' => $coverageMonth,
         ];
     }
 }

@@ -57,11 +57,23 @@ class EventController extends Controller
                 ];
             });
 
+        $monthEventDays = collect(CarbonPeriod::create($selectedDate->copy()->startOfMonth(), $selectedDate->copy()->endOfMonth()))
+            ->map(function (Carbon $date) use ($eventsByDate) {
+                return [
+                    'date' => $date->copy(),
+                    'isToday' => $date->isToday(),
+                    'events' => $eventsByDate->get($date->toDateString(), collect()),
+                ];
+            })
+            ->filter(fn (array $day) => $day['events']->isNotEmpty())
+            ->values();
+
         return view('events.index', [
             'viewMode' => $viewMode,
             'selectedDate' => $selectedDate,
             'monthWeeks' => $monthWeeks,
             'weekDays' => $weekDays,
+            'monthEventDays' => $monthEventDays,
             'canManageCalendar' => $request->user()?->canManageCalendar() ?? false,
             'monthPreviousDate' => $selectedDate->copy()->subMonth()->toDateString(),
             'monthNextDate' => $selectedDate->copy()->addMonth()->toDateString(),

@@ -44,7 +44,70 @@
 
                 <div class="panel-body">
                     @if ($users->count())
-                        <div class="overflow-x-auto">
+                        <div class="mobile-record-list">
+                            @foreach ($users as $managedUser)
+                                <article class="mobile-record-card">
+                                    <div class="mobile-record-header">
+                                        <div class="min-w-0">
+                                            <h4 class="mobile-record-title">{{ $managedUser->name }}</h4>
+                                            <p class="mt-1 break-all text-sm text-slate-400">{{ $managedUser->email }}</p>
+                                        </div>
+
+                                        <span class="status-badge {{ $managedUser->is_active ? 'status-active' : 'status-inactive' }}">
+                                            {{ $managedUser->is_active ? 'Active' : 'Inactive' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mobile-kv">
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Role</div>
+                                            <div class="mobile-kv-value">{{ \Illuminate\Support\Str::headline($managedUser->role) }}</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Linked Member</div>
+                                            <div class="mobile-kv-value">
+                                                @if ($managedUser->member)
+                                                    {{ $managedUser->member->full_name }}
+                                                @else
+                                                    --
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Club Position</div>
+                                            <div class="mobile-kv-value">{{ $managedUser->member?->club_position ?? '--' }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mobile-action-row">
+                                        <a href="{{ route('users.edit', $managedUser) }}" class="btn-secondary-accent">
+                                            Edit Role
+                                        </a>
+
+                                        @if (! $managedUser->isAdmin())
+                                            <form method="POST" action="{{ route('users.update-status', $managedUser) }}">
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="is_active" value="{{ $managedUser->is_active ? 0 : 1 }}">
+                                                <button
+                                                    type="submit"
+                                                    class="{{ $managedUser->is_active ? 'inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-200 transition hover:bg-red-500/20' : 'btn-secondary' }}"
+                                                >
+                                                    {{ $managedUser->is_active ? 'Deactivate' : 'Reactivate' }}
+                                                </button>
+                                            </form>
+                                        @else
+                                            <span class="inline-flex items-center rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                                                Admin account
+                                            </span>
+                                        @endif
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -111,6 +174,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="mt-4">

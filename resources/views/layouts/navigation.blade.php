@@ -5,8 +5,16 @@
         handleScroll() {
             this.scrolled = window.scrollY > 8;
         },
+        closeMenu() {
+            this.open = false;
+        },
+        toggleMenu() {
+            this.open = !this.open;
+        },
     }"
     x-init="handleScroll(); window.addEventListener('scroll', () => handleScroll(), { passive: true })"
+    x-effect="document.body.classList.toggle('overflow-hidden', open)"
+    @click.outside="closeMenu()"
     class="sticky top-0 z-40 border-b border-transparent bg-slate-950/75 transition-all duration-200"
     :class="scrolled
         ? 'backdrop-blur-md supports-[backdrop-filter]:bg-slate-950/70 border-slate-800/80 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.95)]'
@@ -16,7 +24,6 @@
         $user = Auth::user();
         $canManageUsers = $user?->canManageUsers() ?? false;
         $canViewMembers = $user?->canViewMembers() ?? false;
-        $canManageFinance = $user?->canManageFinance() ?? false;
         $canViewFinance = $user?->canViewFinance() ?? false;
         $canManageAnnouncements = $user?->canManageAnnouncements() ?? false;
         $canManageCalendar = $user?->canManageCalendar() ?? false;
@@ -25,17 +32,22 @@
     @endphp
 
     <!-- Primary Navigation Menu -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-4">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex min-h-14 items-center justify-between gap-3 py-2 sm:grid sm:h-16 sm:grid-cols-[1fr_auto_1fr] sm:py-0">
             <div class="flex items-center">
-                <!-- Logo -->
-                <div class="shrink-0 flex items-center">
+                <div class="flex shrink-0 items-center">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                         <x-application-logo class="block h-10 w-auto fill-current text-sky-300" />
-                        <div class="hidden min-w-0 sm:block">
-                            <p class="text-[0.72rem] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-100">
+                        <div class="min-w-0">
+                            <p class="text-base font-semibold leading-tight text-slate-100 sm:hidden">
+                                Bogo Eagles Finance
+                            </p>
+                            <p class="mt-0.5 text-xs leading-tight text-slate-400 sm:hidden">
+                                Cebu North Bogo Eagles Club
+                            </p>
+                            <p class="hidden text-[0.72rem] font-semibold uppercase leading-tight tracking-[0.2em] text-slate-100 sm:block">
                                 <span class="block">Cebu North Bogo</span>
-                                <span class="mt-0.5 block text-slate-300">Eagles Club</span>
+                                <span class="mt-0.5 block text-slate-300">Eagles Club Finance</span>
                             </p>
                         </div>
                     </a>
@@ -131,9 +143,9 @@
                 </x-dropdown>
             </div>
 
-            <!-- Hamburger -->
-            <div class="-me-2 flex items-center justify-self-end sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center rounded-md p-2 text-slate-400 transition duration-150 ease-in-out hover:bg-slate-800 hover:text-slate-200 focus:bg-slate-800 focus:text-slate-200 focus:outline-none">
+            <!-- Mobile Actions -->
+            <div class="flex items-center gap-2 sm:hidden">
+                <button @click="toggleMenu()" class="inline-flex items-center justify-center rounded-xl border border-slate-800 bg-slate-900/80 p-2 text-slate-300 transition duration-150 ease-in-out hover:bg-slate-800 hover:text-slate-100 focus:bg-slate-800 focus:text-slate-100 focus:outline-none">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -143,84 +155,96 @@
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden border-t border-slate-800 bg-slate-900 sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-
-            <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
-                {{ __('Calendar') }}
-            </x-responsive-nav-link>
-
-            @if ($canViewFinance)
-                <x-responsive-nav-link :href="route('contributions.index')" :active="request()->routeIs('contributions.*')">
-                    {{ __('Contributions') }}
-                </x-responsive-nav-link>
-
-                <x-responsive-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
-                    {{ __('Expenses') }}
-                </x-responsive-nav-link>
-            @endif
-
-            @if ($canViewMembers)
-                <x-responsive-nav-link :href="route('members.index')" :active="$isMembersNavActive">
-                    {{ __('Members') }}
-                </x-responsive-nav-link>
-            @endif
-
-            @if ($canViewOwnMemberProfile)
-                <x-responsive-nav-link :href="route('members.self')" :active="request()->routeIs('members.self')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
-            @endif
-        </div>
-
-        <!-- Responsive Settings Options -->
-        <div class="border-t border-slate-800 pt-4 pb-1">
-            <div class="px-4">
-                <div class="text-base font-medium text-slate-100">{{ Auth::user()->name }}</div>
-                <div class="text-sm font-medium text-slate-400">{{ Auth::user()->email }}</div>
+    <div x-show="open" x-cloak class="mobile-menu-dropdown-wrap" x-transition.opacity>
+        <div class="absolute inset-0 bg-slate-950/45" @click="closeMenu()"></div>
+        <div class="mx-auto max-w-7xl px-4 sm:hidden">
+            <div class="mobile-menu-dropdown" x-transition:enter="transition ease-out duration-180" x-transition:enter-start="-translate-y-2 opacity-0" x-transition:enter-end="translate-y-0 opacity-100" x-transition:leave="transition ease-in duration-120" x-transition:leave-start="translate-y-0 opacity-100" x-transition:leave-end="-translate-y-2 opacity-0">
+            <div class="border-b border-slate-800/80 px-5 py-4">
+                <div>
+                    <p class="text-sm font-semibold text-slate-100">Bogo Eagles Finance</p>
+                    <p class="mt-1 text-xs uppercase tracking-[0.2em] text-sky-300/80">Signed In</p>
+                    <h3 class="mt-2 text-base font-semibold text-slate-100">{{ Auth::user()->name }}</h3>
+                    <p class="mt-1 text-sm text-slate-400">{{ Auth::user()->email }}</p>
+                </div>
             </div>
 
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Account Settings') }}
-                </x-responsive-nav-link>
+            <div class="space-y-5 px-5 py-5">
+                <div class="space-y-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Navigate</p>
+                    <a href="{{ route('dashboard') }}" class="mobile-menu-link" @click="closeMenu()">
+                        <span>Dashboard</span>
+                        <span class="text-xs text-slate-500">{{ request()->routeIs('dashboard') ? 'Current' : 'Open' }}</span>
+                    </a>
+                    <a href="{{ route('calendar.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                        <span>Calendar</span>
+                        <span class="text-xs text-slate-500">{{ request()->routeIs('calendar.*') ? 'Current' : 'Open' }}</span>
+                    </a>
+                    @if ($canViewFinance)
+                        <a href="{{ route('contributions.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Contributions</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('contributions.*') ? 'Current' : 'Open' }}</span>
+                        </a>
+                        <a href="{{ route('expenses.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Expenses</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('expenses.*') ? 'Current' : 'Open' }}</span>
+                        </a>
+                    @endif
+                    @if ($canViewMembers)
+                        <a href="{{ route('members.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Members</span>
+                            <span class="text-xs text-slate-500">{{ $isMembersNavActive ? 'Current' : 'Open' }}</span>
+                        </a>
+                    @endif
+                    @if ($canViewOwnMemberProfile)
+                        <a href="{{ route('members.self') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>My Profile</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('members.self') ? 'Current' : 'Open' }}</span>
+                        </a>
+                    @endif
+                </div>
 
-                @if ($canManageAnnouncements)
-                    <x-responsive-nav-link :href="route('announcements.index')" :active="request()->routeIs('announcements.*')">
-                        {{ __('Announcements') }}
-                    </x-responsive-nav-link>
-                @endif
+                <div class="space-y-3">
+                    <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Actions</p>
+                    <a href="{{ route('profile.edit') }}" class="mobile-menu-link" @click="closeMenu()">
+                        <span>Account Settings</span>
+                        <span class="text-xs text-slate-500">Manage</span>
+                    </a>
 
-                @if ($canManageCalendar)
-                    <x-responsive-nav-link :href="route('calendar.create')" :active="request()->routeIs('calendar.create')">
-                        {{ __('Add Event') }}
-                    </x-responsive-nav-link>
-                @endif
+                    @if ($canManageAnnouncements)
+                        <a href="{{ route('announcements.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Announcements</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('announcements.*') ? 'Current' : 'Open' }}</span>
+                        </a>
+                    @endif
 
-                @if ($canManageUsers)
-                    <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
-                        {{ __('User Roles') }}
-                    </x-responsive-nav-link>
+                    @if ($canManageCalendar)
+                        <a href="{{ route('calendar.create') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Add Event</span>
+                            <span class="text-xs text-slate-500">Create</span>
+                        </a>
+                    @endif
 
-                    <x-responsive-nav-link :href="route('activity-logs.index')" :active="request()->routeIs('activity-logs.*')">
-                        {{ __('Activity Tracker') }}
-                    </x-responsive-nav-link>
-                @endif
+                    @if ($canManageUsers)
+                        <a href="{{ route('users.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>User Roles</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('users.*') ? 'Current' : 'Open' }}</span>
+                        </a>
 
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
+                        <a href="{{ route('activity-logs.index') }}" class="mobile-menu-link" @click="closeMenu()">
+                            <span>Activity Tracker</span>
+                            <span class="text-xs text-slate-500">{{ request()->routeIs('activity-logs.*') ? 'Current' : 'Open' }}</span>
+                        </a>
+                    @endif
+                </div>
+
+                <form method="POST" action="{{ route('logout') }}" class="pt-1">
                     @csrf
-
-                    <x-responsive-nav-link :href="route('logout')"
-                            onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
-                    </x-responsive-nav-link>
+                    <button type="submit" class="mobile-menu-link w-full justify-between text-red-200">
+                        <span>Log Out</span>
+                        <span class="text-xs text-red-300/70">Exit</span>
+                    </button>
                 </form>
+            </div>
             </div>
         </div>
     </div>

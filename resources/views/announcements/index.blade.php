@@ -30,7 +30,60 @@
 
                 <div class="panel-body">
                     @if ($announcements->count())
-                        <div class="overflow-x-auto">
+                        <div class="mobile-record-list">
+                            @foreach ($announcements as $announcement)
+                                <article class="mobile-record-card">
+                                    <div class="mobile-record-header">
+                                        <div class="min-w-0">
+                                            <h4 class="mobile-record-title">{{ $announcement->title }}</h4>
+                                            <p class="mt-2 text-sm text-slate-400">{{ \Illuminate\Support\Str::limit($announcement->body, 180) }}</p>
+                                        </div>
+
+                                        <span class="status-badge {{ $announcement->is_published ? 'status-active' : 'status-inactive' }}">
+                                            {{ $announcement->is_published ? 'Published' : 'Draft' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="mobile-kv">
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Linked Event</div>
+                                            <div class="mobile-kv-value">
+                                                @if ($announcement->event)
+                                                    {{ $announcement->event->event_date?->format('M d, Y') ?? '--' }} · {{ $announcement->event->title }}
+                                                @else
+                                                    --
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Published</div>
+                                            <div class="mobile-kv-value">{{ $announcement->published_at?->format('M d, Y h:i A') ?? '--' }}</div>
+                                        </div>
+                                        <div class="mobile-kv-item">
+                                            <div class="mobile-kv-label">Created By</div>
+                                            <div class="mobile-kv-value">{{ $announcement->creator?->name ?? '--' }}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mobile-action-row">
+                                        <a href="{{ route('announcements.edit', $announcement) }}" class="btn-secondary-accent">
+                                            Edit
+                                        </a>
+
+                                        <form method="POST" action="{{ route('announcements.destroy', $announcement) }}" onsubmit="return confirm('Delete this announcement?');">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="inline-flex items-center rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-red-200 transition hover:bg-red-500/20">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </article>
+                            @endforeach
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -87,6 +140,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="mt-4">

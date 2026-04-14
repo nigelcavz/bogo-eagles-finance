@@ -49,7 +49,53 @@
 
                 <div class="panel-body">
                     @if ($viewMode === 'month')
-                        <div class="overflow-x-auto">
+                        <div class="space-y-4 lg:hidden">
+                            <section class="rounded-2xl border border-slate-800/80 bg-slate-950/50 p-3">
+                                <div class="mb-3 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                    @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
+                                        <div class="py-1">{{ $dayName }}</div>
+                                    @endforeach
+                                </div>
+
+                                <div class="space-y-1">
+                                    @foreach ($monthWeeks as $week)
+                                        <div class="grid grid-cols-7 gap-1">
+                                            @foreach ($week as $day)
+                                                <div class="min-h-[4.5rem] rounded-xl border px-1.5 py-1.5 {{ $day['isCurrentMonth'] ? 'border-slate-800/80 bg-slate-900/80' : 'border-slate-900 bg-slate-950/40 text-slate-600' }} {{ $day['isToday'] ? 'ring-1 ring-sky-400/50' : '' }}">
+                                                    <div class="flex items-center justify-between">
+                                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-semibold {{ $day['isToday'] ? 'bg-sky-500/15 text-sky-200' : ($day['isCurrentMonth'] ? 'text-slate-200' : 'text-slate-600') }}">
+                                                            {{ $day['date']->day }}
+                                                        </span>
+                                                        @if ($day['events']->isNotEmpty())
+                                                            <span class="text-[10px] font-semibold text-sky-300">{{ $day['events']->count() }}</span>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="mt-1 space-y-1">
+                                                        @forelse ($day['events']->take(2) as $event)
+                                                            <div class="truncate rounded-md border border-sky-500/15 bg-sky-500/10 px-1.5 py-1 text-[10px] leading-tight text-sky-100">
+                                                                {{ $event->title }}
+                                                            </div>
+                                                        @empty
+                                                            @if ($day['isCurrentMonth'])
+                                                                <div class="h-4"></div>
+                                                            @endif
+                                                        @endforelse
+
+                                                        @if ($day['events']->count() > 2)
+                                                            <div class="text-[10px] font-medium text-slate-400">+{{ $day['events']->count() - 2 }} more</div>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </section>
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="w-full min-w-[960px] table-fixed border-separate border-spacing-0 overflow-hidden rounded-2xl border border-slate-800/80">
                                 <thead>
                                     <tr>
@@ -94,6 +140,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </div>
                     @else
                         <div class="space-y-4">

@@ -93,7 +93,16 @@
                 </div>
                 <div class="panel-body text-gray-900">
                     @if ($members->count())
-                        <div class="overflow-x-auto">
+                        <div class="mobile-simple-list">
+                            @foreach ($members as $member)
+                                <a href="{{ route('members.show', $member) }}" class="mobile-simple-list-item">
+                                    {{ $member->full_name }}
+                                </a>
+                            @endforeach
+                        </div>
+
+                        <div class="desktop-table-wrap">
+                            <div class="overflow-x-auto">
                             <table class="data-table">
                                 <thead>
                                     <tr>
@@ -166,6 +175,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                         <div class="mt-4">

@@ -87,6 +87,51 @@ class MemberProfilePageTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_member_profile_shows_november_and_december_as_discounted_for_january_full_year_dues(): void
+    {
+        $treasurer = User::factory()->role('treasurer')->create();
+        $memberUser = User::factory()->role('member')->create();
+        $member = Member::factory()->create([
+            'user_id' => $memberUser->id,
+            'first_name' => 'Test',
+            'last_name' => 'Member',
+        ]);
+
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 700,
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 7000.00,
+            'payment_date' => '2026-01-20',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $treasurer->id,
+        ]);
+
+        foreach (range(1, 12) as $month) {
+            ContributionCoverage::create([
+                'contribution_id' => $contribution->id,
+                'member_id' => $member->id,
+                'coverage_year' => 2026,
+                'coverage_month' => $month,
+                'coverage_label' => now()->setMonth($month)->startOfMonth()->format('M') . ' 2026',
+            ]);
+        }
+
+        $this->actingAs($treasurer)
+            ->get(route('members.show', $member))
+            ->assertOk()
+            ->assertSee('Nov 2026')
+            ->assertSee('Dec 2026')
+            ->assertSee('Discounted')
+            ->assertSee('January full-year 2-month discount')
+            ->assertDontSee('583.33');
+    }
+
     public function test_secretary_can_open_member_directory_pages_but_officer_cannot(): void
     {
         $secretary = User::factory()->role('secretary')->create();

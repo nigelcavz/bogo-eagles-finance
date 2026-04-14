@@ -14,6 +14,9 @@
                 <p class="mt-1 text-sm text-gray-600">
                     One row per member, using actual posted coverage rows to show which months are already paid for {{ $year }}.
                 </p>
+                <p class="mt-2 text-xs text-sky-200">
+                    Full-year monthly dues paid with a January payment date receive a 2-month discount, so 12 months of coverage are charged as 10 months using this contribution type's monthly amount.
+                </p>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
@@ -318,7 +321,7 @@
                                             member<span x-show="selectedMemberCount !== 1">s</span>
                                         </p>
                                         <p class="text-xs text-slate-400">
-                                            Review your selections, set the payment date, and save to create the monthly dues records.
+                                            Review your selections, set the payment date, and save to create the monthly dues records. If all 12 months for a member are saved with a January payment date, the amount is charged as 10 months, not 12.
                                         </p>
                                     </div>
 
@@ -364,7 +367,7 @@
                                                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/85">Confirm Batch Save</p>
                                                 <h3 class="mt-2 text-lg font-semibold text-slate-100">Review Monthly Dues Selections</h3>
                                                 <p class="mt-2 text-sm text-slate-400">
-                                                    Please confirm who will be recorded for this payment batch before saving it to the ledger.
+                                                    Please confirm who will be recorded for this payment batch before saving it to the ledger. Full-year January payments receive a 2-month discount and are charged as 10 months of dues.
                                                 </p>
                                             </div>
 
