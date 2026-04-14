@@ -18,14 +18,15 @@ class EventController extends Controller
     {
         $viewMode = $request->string('view', 'month')->toString();
         $viewMode = in_array($viewMode, ['month', 'week'], true) ? $viewMode : 'month';
+        $autoFocusToday = ! $request->filled('date');
         $selectedDate = $request->filled('date')
             ? Carbon::parse($request->string('date')->toString())
             : now();
 
-        $monthStart = $selectedDate->copy()->startOfMonth()->startOfWeek();
-        $monthEnd = $selectedDate->copy()->endOfMonth()->endOfWeek();
-        $weekStart = $selectedDate->copy()->startOfWeek();
-        $weekEnd = $selectedDate->copy()->endOfWeek();
+        $monthStart = $selectedDate->copy()->startOfMonth()->startOfWeek(Carbon::SUNDAY);
+        $monthEnd = $selectedDate->copy()->endOfMonth()->endOfWeek(Carbon::SATURDAY);
+        $weekStart = $selectedDate->copy()->startOfWeek(Carbon::SUNDAY);
+        $weekEnd = $selectedDate->copy()->endOfWeek(Carbon::SATURDAY);
 
         $events = Event::query()
             ->with('creator')
@@ -43,6 +44,7 @@ class EventController extends Controller
                     'date' => $date->copy(),
                     'isCurrentMonth' => $date->month === $selectedDate->month,
                     'isToday' => $date->isToday(),
+                    'isSunday' => $date->dayOfWeek === Carbon::SUNDAY,
                     'events' => $eventsByDate->get($date->toDateString(), collect()),
                 ];
             })
@@ -53,6 +55,7 @@ class EventController extends Controller
                 return [
                     'date' => $date->copy(),
                     'isToday' => $date->isToday(),
+                    'isSunday' => $date->dayOfWeek === Carbon::SUNDAY,
                     'events' => $eventsByDate->get($date->toDateString(), collect()),
                 ];
             });
@@ -62,6 +65,7 @@ class EventController extends Controller
                 return [
                     'date' => $date->copy(),
                     'isToday' => $date->isToday(),
+                    'isSunday' => $date->dayOfWeek === Carbon::SUNDAY,
                     'events' => $eventsByDate->get($date->toDateString(), collect()),
                 ];
             })
@@ -79,6 +83,7 @@ class EventController extends Controller
             'monthNextDate' => $selectedDate->copy()->addMonth()->toDateString(),
             'weekPreviousDate' => $selectedDate->copy()->subWeek()->toDateString(),
             'weekNextDate' => $selectedDate->copy()->addWeek()->toDateString(),
+            'autoFocusToday' => $autoFocusToday,
         ]);
     }
 

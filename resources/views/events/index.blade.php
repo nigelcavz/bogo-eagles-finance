@@ -1,4 +1,5 @@
 <x-app-layout>
+    @php($calendarDayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'])
     <x-slot name="header">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -52,8 +53,8 @@
                         <div class="space-y-4 lg:hidden">
                             <section class="rounded-2xl border border-slate-800/80 bg-slate-950/50 p-3">
                                 <div class="mb-3 grid grid-cols-7 gap-1 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-                                    @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
-                                        <div class="py-1">{{ $dayName }}</div>
+                                    @foreach ($calendarDayLabels as $dayName)
+                                        <div class="py-1 {{ $dayName === 'Sun' ? 'text-rose-300/90' : '' }}">{{ $dayName }}</div>
                                     @endforeach
                                 </div>
 
@@ -61,19 +62,22 @@
                                     @foreach ($monthWeeks as $week)
                                         <div class="grid grid-cols-7 gap-1">
                                             @foreach ($week as $day)
-                                                <div class="min-h-[4.5rem] rounded-xl border px-1.5 py-1.5 {{ $day['isCurrentMonth'] ? 'border-slate-800/80 bg-slate-900/80' : 'border-slate-900 bg-slate-950/40 text-slate-600' }} {{ $day['isToday'] ? 'ring-1 ring-sky-400/50' : '' }}">
+                                                <div
+                                                    data-calendar-today="{{ $day['isToday'] ? 'true' : 'false' }}"
+                                                    class="min-h-[4.5rem] rounded-xl border px-1.5 py-1.5 {{ $day['isCurrentMonth'] ? 'border-slate-800/80 bg-slate-900/80' : 'border-slate-900 bg-slate-950/40 text-slate-600' }} {{ $day['isSunday'] ? 'border-rose-500/20 bg-rose-500/6' : '' }} {{ $day['isToday'] ? 'border-sky-400/45 bg-sky-400/[0.12] shadow-[inset_0_0_0_1px_rgba(56,189,248,0.32),0_0_28px_-14px_rgba(56,189,248,0.55)]' : '' }}"
+                                                >
                                                     <div class="flex items-center justify-between">
-                                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-semibold {{ $day['isToday'] ? 'bg-sky-500/15 text-sky-200' : ($day['isCurrentMonth'] ? 'text-slate-200' : 'text-slate-600') }}">
+                                                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full text-[11px] font-semibold {{ $day['isToday'] ? 'bg-sky-500/20 text-sky-100' : ($day['isSunday'] ? 'text-rose-200' : ($day['isCurrentMonth'] ? 'text-slate-200' : 'text-slate-600')) }}">
                                                             {{ $day['date']->day }}
                                                         </span>
                                                         @if ($day['events']->isNotEmpty())
-                                                            <span class="text-[10px] font-semibold text-sky-300">{{ $day['events']->count() }}</span>
+                                                            <span class="text-[10px] font-semibold {{ $day['isSunday'] ? 'text-rose-300' : 'text-sky-300' }}">{{ $day['events']->count() }}</span>
                                                         @endif
                                                     </div>
 
                                                     <div class="mt-1 space-y-1">
                                                         @forelse ($day['events']->take(2) as $event)
-                                                            <div class="truncate rounded-md border border-sky-500/15 bg-sky-500/10 px-1.5 py-1 text-[10px] leading-tight text-sky-100">
+                                                            <div class="truncate rounded-md border px-1.5 py-1 text-[10px] leading-tight {{ $day['isSunday'] ? 'border-rose-500/20 bg-rose-500/12 text-rose-100' : 'border-sky-500/15 bg-sky-500/10 text-sky-100' }}">
                                                                 {{ $event->title }}
                                                             </div>
                                                         @empty
@@ -99,8 +103,8 @@
                             <table class="w-full min-w-[960px] table-fixed border-separate border-spacing-0 overflow-hidden rounded-2xl border border-slate-800/80">
                                 <thead>
                                     <tr>
-                                        @foreach (['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as $dayName)
-                                            <th class="border-b border-r border-slate-800/80 bg-slate-900/90 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] text-slate-400 last:border-r-0">
+                                        @foreach ($calendarDayLabels as $dayName)
+                                            <th class="border-b border-r border-slate-800/80 bg-slate-900/90 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.14em] {{ $dayName === 'Sun' ? 'text-rose-300/90' : 'text-slate-400' }} last:border-r-0">
                                                 {{ $dayName }}
                                             </th>
                                         @endforeach
@@ -110,19 +114,22 @@
                                     @foreach ($monthWeeks as $week)
                                         <tr>
                                             @foreach ($week as $day)
-                                                <td class="h-44 align-top border-b border-r border-slate-800/80 bg-slate-950/50 p-3 last:border-r-0 {{ $loop->parent->last ? 'last:border-b-0' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-55' }} {{ $day['isToday'] ? 'bg-amber-300/8 shadow-[inset_0_0_0_1px_rgba(251,191,36,0.28),0_0_28px_-16px_rgba(251,191,36,0.55)]' : '' }}">
+                                                <td
+                                                    data-calendar-today="{{ $day['isToday'] ? 'true' : 'false' }}"
+                                                    class="h-44 align-top border-b border-r border-slate-800/80 bg-slate-950/50 p-3 last:border-r-0 {{ $loop->parent->last ? 'last:border-b-0' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-55' }} {{ $day['isSunday'] ? 'bg-rose-500/[0.05]' : '' }} {{ $day['isToday'] ? 'bg-sky-400/[0.1] shadow-[inset_0_0_0_1px_rgba(56,189,248,0.34),0_0_36px_-14px_rgba(56,189,248,0.65)]' : '' }}"
+                                                >
                                                     <div class="mb-3 flex items-center justify-between">
-                                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold {{ $day['isToday'] ? 'bg-amber-300/20 text-amber-100' : 'text-slate-200' }}">
+                                                        <span class="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-semibold {{ $day['isToday'] ? 'bg-sky-500/25 text-sky-50' : ($day['isSunday'] ? 'text-rose-200' : 'text-slate-200') }}">
                                                             {{ $day['date']->day }}
                                                         </span>
-                                                        <span class="text-[11px] uppercase tracking-[0.16em] text-slate-500">{{ $day['date']->format('M') }}</span>
+                                                        <span class="text-[11px] uppercase tracking-[0.16em] {{ $day['isSunday'] ? 'text-rose-300/80' : 'text-slate-500' }}">{{ $day['date']->format('M') }}</span>
                                                     </div>
 
                                                     <div class="space-y-2">
                                                         @forelse ($day['events']->take(3) as $event)
-                                                            <div class="rounded-xl border border-sky-500/15 bg-sky-500/10 px-3 py-2">
+                                                            <div class="rounded-xl border {{ $day['isSunday'] ? 'border-rose-500/20 bg-rose-500/10' : 'border-sky-500/15 bg-sky-500/10' }} px-3 py-2">
                                                                 <p class="truncate text-sm font-medium text-slate-100">{{ $event->title }}</p>
-                                                                <p class="mt-1 text-xs text-slate-300">
+                                                                <p class="mt-1 text-xs {{ $day['isSunday'] && ! $event->start_time ? 'font-semibold text-rose-200 drop-shadow-[0_0_8px_rgba(251,113,133,0.45)]' : 'text-slate-300' }}">
                                                                     {{ $event->start_time ? \Carbon\Carbon::createFromFormat('H:i:s', $event->start_time)->format('h:i A') : 'All day' }}
                                                                 </p>
                                                             </div>
@@ -145,11 +152,11 @@
                     @else
                         <div class="space-y-4">
                             @foreach ($weekDays as $day)
-                                <section class="rounded-2xl border border-slate-800/80 bg-slate-950/50 p-5">
+                                <section data-calendar-today="{{ $day['isToday'] ? 'true' : 'false' }}" class="rounded-2xl border border-slate-800/80 bg-slate-950/50 p-5 {{ $day['isSunday'] ? 'border-rose-500/20 bg-rose-500/[0.04]' : '' }} {{ $day['isToday'] ? 'shadow-[inset_0_0_0_1px_rgba(56,189,248,0.32),0_0_30px_-14px_rgba(56,189,248,0.55)]' : '' }}">
                                     <div class="flex items-center justify-between">
                                         <div>
-                                            <h4 class="text-base font-semibold text-slate-100">{{ $day['date']->format('l') }}</h4>
-                                            <p class="mt-1 text-sm text-slate-400">{{ $day['date']->format('F d, Y') }}</p>
+                                            <h4 class="text-base font-semibold {{ $day['isSunday'] ? 'text-rose-200' : 'text-slate-100' }}">{{ $day['date']->format('l') }}</h4>
+                                            <p class="mt-1 text-sm {{ $day['isSunday'] ? 'text-rose-200/80' : 'text-slate-400' }}">{{ $day['date']->format('F d, Y') }}</p>
                                         </div>
 
                                         @if ($day['isToday'])
@@ -159,7 +166,7 @@
 
                                     <div class="mt-4 space-y-3">
                                         @forelse ($day['events'] as $event)
-                                            <article class="rounded-2xl border border-slate-800/80 bg-slate-900/80 px-4 py-4">
+                                            <article class="rounded-2xl border {{ $day['isSunday'] ? 'border-rose-500/20 bg-rose-500/[0.08]' : 'border-slate-800/80 bg-slate-900/80' }} px-4 py-4">
                                                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                                                     <div>
                                                         <h5 class="text-sm font-semibold text-slate-100">{{ $event->title }}</h5>
@@ -169,7 +176,7 @@
                                                     </div>
 
                                                     <div class="text-sm text-slate-400 md:text-right">
-                                                        <div>
+                                                        <div class="{{ $day['isSunday'] && ! $event->start_time ? 'font-semibold text-rose-200 drop-shadow-[0_0_8px_rgba(251,113,133,0.45)]' : '' }}">
                                                             {{ $event->start_time ? \Carbon\Carbon::createFromFormat('H:i:s', $event->start_time)->format('h:i A') : 'All day' }}
                                                             @if ($event->end_time)
                                                                 - {{ \Carbon\Carbon::createFromFormat('H:i:s', $event->end_time)->format('h:i A') }}
@@ -193,4 +200,21 @@
             </div>
         </div>
     </div>
+
+    @if ($autoFocusToday)
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                window.setTimeout(() => {
+                    const today = Array.from(document.querySelectorAll('[data-calendar-today="true"]'))
+                        .find((element) => element.offsetParent !== null);
+
+                    today?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                        inline: 'center',
+                    });
+                }, 180);
+            });
+        </script>
+    @endif
 </x-app-layout>
