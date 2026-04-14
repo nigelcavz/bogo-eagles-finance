@@ -493,7 +493,7 @@ class ContributionController extends Controller
             ->get();
 
         $coverages = ContributionCoverage::query()
-            ->with(['contribution', 'member'])
+            ->with(['contribution.category', 'member'])
             ->where('coverage_year', $year)
             ->whereHas('contribution', function (Builder $query) use ($category) {
                 $query->where('contribution_category_id', $category->id)
@@ -503,7 +503,7 @@ class ContributionController extends Controller
 
         $coveragesByMember = $coverages->groupBy('member_id');
 
-        $trackerRows = $members->map(function (Member $member) use ($coveragesByMember) {
+        $trackerRows = $members->map(function (Member $member) use ($coveragesByMember, $category) {
             $memberCoverages = $coveragesByMember->get($member->id, collect());
             $coverageCounts = $memberCoverages
                 ->groupBy('coverage_month')
@@ -517,14 +517,21 @@ class ContributionController extends Controller
 
             return [
                 'member' => $member,
-                'months' => collect(self::MONTH_LABELS)->mapWithKeys(function (string $label, int $month) use ($coverageCounts) {
+                'months' => collect(self::MONTH_LABELS)->mapWithKeys(function (string $label, int $month) use ($coverageCounts, $memberCoverages, $category) {
                     $count = (int) ($coverageCounts->get($month) ?? 0);
+                    $monthCoverage = $memberCoverages
+                        ->where('coverage_month', $month)
+                        ->sortBy('id')
+                        ->first();
 
                     return [$month => [
                         'label' => $label,
                         'covered' => $count > 0,
                         'duplicate' => $count > 1,
                         'count' => $count,
+                        'display_value' => $count > 0
+                            ? $this->monthlyTrackerMonthDisplayValue($monthCoverage, $month, $category)
+                            : null,
                     ]];
                 }),
                 'paid_month_count' => $coveredMonthCount,
@@ -581,6 +588,50 @@ class ContributionController extends Controller
                 })
                 ->all(),
         ]);
+    }
+
+    private function monthlyTrackerMonthDisplayValue(
+        ?ContributionCoverage $coverage,
+        int $month,
+        ContributionCategory $category
+    ): string {
+        $contribution = $coverage?->contribution;
+
+        if (! $contribution) {
+            return 'OK';
+        }
+
+        if ($this->isJanuaryFullYearDiscountContribution($contribution, $category) && in_array($month, [11, 12], true)) {
+            return 'OK';
+        }
+
+        return $this->formatTrackerMonthlyAmount($category->monthlyBaseAmount());
+    }
+
+    private function isJanuaryFullYearDiscountContribution(
+        Contribution $contribution,
+        ContributionCategory $category
+    ): bool {
+        if (! $category->requiresMonthlyCoverage()) {
+            return false;
+        }
+
+        $coveragesCount = (int) ($contribution->relationLoaded('coverages')
+            ? $contribution->coverages->count()
+            : $contribution->coverages()->count());
+
+        return $coveragesCount === 12
+            && $contribution->payment_date?->month === 1
+            && (float) $contribution->amount === (float) $category->calculateMonthlyCoverageAmount(12, $contribution->payment_date);
+    }
+
+    private function formatTrackerMonthlyAmount(float $amount): string
+    {
+        if ((float) floor($amount) === $amount) {
+            return (string) (int) $amount;
+        }
+
+        return rtrim(rtrim(number_format($amount, 2, '.', ''), '0'), '.');
     }
 
     private function duplicateTrackerSelections(

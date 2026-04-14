@@ -104,7 +104,7 @@
             </div>
 
             <div class="app-panel">
-                <div class="panel-body">
+                <div class="panel-body pt-1 sm:pt-2">
                     @if ($errors->has('selections') || $errors->has('payment_date'))
                         <div class="mb-4 rounded-md border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
                             @if ($errors->has('selections'))
@@ -132,7 +132,13 @@
                             paymentDate: @js($trackerDefaultPaymentDate),
                             showConfirmation: false,
                             memberNames: @js($trackerRows->mapWithKeys(fn ($row) => [$row['member']->id => $row['member']->full_name])->all()),
+                            memberDirectory: @js($trackerRows->map(fn ($row) => [
+                                'id' => $row['member']->id,
+                                'name' => $row['member']->full_name,
+                                'member_code' => $row['member']->member_code,
+                            ])->values()->all()),
                             monthLabels: @js($monthLabels),
+                            memberSearch: '',
                             toggleMonth(memberId, monthNumber) {
                                 const existingIndex = this.selectedCells.findIndex((cell) => (
                                     cell.member_id === memberId && cell.month === monthNumber
@@ -187,6 +193,35 @@
                             displayMonths(months) {
                                 return months.map((month) => this.monthLabels[month] ?? month).join(', ');
                             },
+                            normalizeSearch(value) {
+                                return (value || '').toString().trim().toLowerCase();
+                            },
+                            rowMatches(memberId) {
+                                const query = this.normalizeSearch(this.memberSearch);
+
+                                if (query === '') {
+                                    return true;
+                                }
+
+                                const member = this.memberDirectory.find((entry) => entry.id === memberId);
+
+                                if (!member) {
+                                    return false;
+                                }
+
+                                const haystacks = [
+                                    member.name,
+                                    member.member_code,
+                                ].map((value) => this.normalizeSearch(value));
+
+                                return haystacks.some((value) => value.includes(query));
+                            },
+                            get matchingMemberCount() {
+                                return this.memberDirectory.filter((member) => this.rowMatches(member.id)).length;
+                            },
+                            clearMemberSearch() {
+                                this.memberSearch = '';
+                            },
                             openConfirmation() {
                                 if (this.selectedMonthCount === 0) {
                                     return;
@@ -209,6 +244,30 @@
                             </div>
                         </template>
 
+                        <div class="space-y-3">
+                            <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="relative w-full sm:max-w-[14rem]">
+                                    <input
+                                        id="tracker-member-search"
+                                        type="search"
+                                        x-model.debounce.150ms="memberSearch"
+                                        placeholder="Search member"
+                                        class="block h-9 w-full rounded-lg border border-slate-800 bg-slate-900/70 px-3 pr-14 text-sm text-slate-100 shadow-sm placeholder:text-slate-500 focus:border-sky-500/60 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                                    >
+                                    <button
+                                        type="button"
+                                        x-cloak
+                                        x-show="memberSearch !== ''"
+                                        @click="clearMemberSearch()"
+                                        class="absolute inset-y-0 right-2 inline-flex items-center px-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-400 transition hover:text-slate-200"
+                                    >
+                                        Clear
+                                    </button>
+                                </div>
+
+                                <p class="text-xs text-slate-500 sm:text-right" x-text="`${matchingMemberCount} member${matchingMemberCount === 1 ? '' : 's'} shown`"></p>
+                            </div>
+
                         <div class="relative max-h-[82vh] overflow-auto rounded-lg border border-slate-800/90">
                             <table class="w-full table-fixed text-sm text-slate-200">
                                 <thead>
@@ -222,7 +281,10 @@
                                 </thead>
                                 <tbody>
                                     @foreach ($trackerRows as $row)
-                                        <tr class="border-t border-slate-800/80 bg-slate-900/80 transition-colors duration-150 even:bg-slate-900 hover:bg-slate-800/80">
+                                        <tr
+                                            x-show="rowMatches({{ $row['member']->id }})"
+                                            class="border-t border-slate-800/80 bg-slate-900/80 transition-colors duration-150 even:bg-slate-900 hover:bg-slate-800/80"
+                                        >
                                             <td class="px-4 py-3 align-middle">
                                                 <div class="font-medium text-slate-100">{{ $row['member']->full_name }}</div>
                                                 @if ($row['member']->member_code)
@@ -237,7 +299,7 @@
                                                         </span>
                                                     @elseif ($month['covered'])
                                                         <span class="inline-flex min-w-[2.6rem] items-center justify-center whitespace-nowrap rounded-full border border-emerald-500/30 bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold uppercase leading-none tracking-wide text-emerald-200">
-                                                            OK
+                                                            {{ $month['display_value'] }}
                                                         </span>
                                                     @elseif ($canManage)
                                                         <button
@@ -294,8 +356,14 @@
                                             </td>
                                         </tr>
                                     @endforeach
+                                    <tr x-cloak x-show="matchingMemberCount === 0">
+                                        <td colspan="14" class="px-4 py-10 text-center text-sm text-slate-400">
+                                            No members matched your search.
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
+                        </div>
                         </div>
 
                         <p class="text-xs text-slate-400">

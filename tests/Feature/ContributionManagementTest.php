@@ -552,4 +552,46 @@ class ContributionManagementTest extends TestCase
             'amount' => '8400.00',
         ]);
     }
+
+    public function test_monthly_tracker_shows_monthly_amount_for_paid_months_and_ok_for_discounted_months(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create([
+            'first_name' => 'Alice',
+            'last_name' => 'Rivera',
+        ]);
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 700,
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 7000.00,
+            'payment_date' => '2026-01-10',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        foreach (range(1, 12) as $month) {
+            ContributionCoverage::create([
+                'contribution_id' => $contribution->id,
+                'member_id' => $member->id,
+                'coverage_year' => 2026,
+                'coverage_month' => $month,
+                'coverage_label' => now()->setMonth($month)->startOfMonth()->format('M') . ' 2026',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('contributions.types.show', [
+            'type' => 'monthly-dues',
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('700')
+            ->assertSee('OK');
+    }
 }
