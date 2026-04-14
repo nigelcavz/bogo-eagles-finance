@@ -127,22 +127,34 @@
                                         <div>
                                             <h4 class="text-lg font-semibold text-slate-50">{{ $announcement->title }}</h4>
                                             @if ($announcement->event)
-                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-sky-200/90">
+                                                <div class="mt-3 flex flex-wrap items-center gap-2 text-xs text-sky-200/90">
                                                     <span class="inline-flex items-center rounded-full border border-sky-500/20 bg-sky-500/10 px-3 py-1 uppercase tracking-[0.14em]">
                                                         {{ $announcement->kind === 'event' ? 'Event' : 'Announcement + Event' }}
                                                     </span>
-                                                    <span>{{ $announcement->event->event_date?->format('M d, Y') ?? '--' }}</span>
-                                                    @if ($announcement->event->start_time)
-                                                        <span>
-                                                            {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->start_time)->format('h:i A') }}
-                                                            @if ($announcement->event->end_time)
-                                                                - {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->end_time)->format('h:i A') }}
-                                                            @endif
-                                                        </span>
-                                                    @endif
-                                                    @if ($announcement->event->location)
-                                                        <span>{{ $announcement->event->location }}</span>
-                                                    @endif
+                                                </div>
+
+                                                <div class="mt-4 grid gap-3 md:grid-cols-2">
+                                                    <div class="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3 shadow-[0_12px_30px_-20px_rgba(56,189,248,0.5)]">
+                                                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-200/75">Event Date</p>
+                                                        <p class="mt-2 text-base font-semibold text-slate-50">
+                                                            {{ $announcement->event->event_date?->format('M d, Y') ?? '--' }}
+                                                        </p>
+                                                        @if ($announcement->event->start_time)
+                                                            <p class="mt-1 text-sm text-sky-100/90">
+                                                                {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->start_time)->format('h:i A') }}
+                                                                @if ($announcement->event->end_time)
+                                                                    - {{ \Carbon\Carbon::createFromFormat('H:i:s', $announcement->event->end_time)->format('h:i A') }}
+                                                                @endif
+                                                            </p>
+                                                        @endif
+                                                    </div>
+
+                                                    <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 shadow-[0_12px_30px_-20px_rgba(16,185,129,0.45)]">
+                                                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-200/75">Location</p>
+                                                        <p class="mt-2 text-base font-semibold text-slate-50">
+                                                            {{ $announcement->event->location ?: 'Location to be announced' }}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             @else
                                                 <div class="mt-1 text-xs uppercase tracking-[0.16em] text-sky-300/80">
