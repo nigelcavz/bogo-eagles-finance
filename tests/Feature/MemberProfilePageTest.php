@@ -28,6 +28,7 @@ class MemberProfilePageTest extends TestCase
 
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $contribution = Contribution::create([
@@ -100,6 +101,7 @@ class MemberProfilePageTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $contribution = Contribution::create([

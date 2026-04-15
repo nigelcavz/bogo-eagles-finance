@@ -14,6 +14,7 @@ class ContributionCategorySeeder extends Seeder
                 'name' => 'Monthly Dues/Contributions',
                 'description' => 'Regular monthly member dues and standard club contributions.',
                 'default_amount' => null,
+                'january_full_payment_discount_months' => 2,
                 'is_active' => true,
             ],
             [

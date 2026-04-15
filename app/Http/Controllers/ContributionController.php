@@ -513,7 +513,15 @@ class ContributionController extends Controller
             $unpaidMonthCount = 12 - $coveredMonthCount;
             $contributionTotal = $memberCoverages
                 ->groupBy('contribution_id')
-                ->sum(fn (Collection $items) => (float) $items->first()->contribution->amount);
+                ->sum(function (Collection $items) use ($category) {
+                    $contribution = $items->first()?->contribution;
+
+                    if (! $contribution) {
+                        return 0;
+                    }
+
+                    return $this->monthlyTrackerContributionDisplayTotal($contribution, $items, $category);
+                });
 
             return [
                 'member' => $member,
@@ -601,11 +609,34 @@ class ContributionController extends Controller
             return 'OK';
         }
 
-        if ($this->isJanuaryFullYearDiscountContribution($contribution, $category) && in_array($month, [11, 12], true)) {
+        if ($this->isJanuaryFullYearDiscountContribution($contribution, $category)
+            && in_array($month, $category->discountedCoverageMonthsForFullJanuaryPayment(), true)) {
             return 'OK';
         }
 
         return $this->formatTrackerMonthlyAmount($category->monthlyBaseAmount());
+    }
+
+    private function monthlyTrackerContributionDisplayTotal(
+        Contribution $contribution,
+        Collection $coverages,
+        ContributionCategory $category
+    ): float {
+        if (! $category->requiresMonthlyCoverage()) {
+            return (float) $contribution->amount;
+        }
+
+        $coverageCount = max(0, $coverages->count());
+
+        if ($coverageCount === 0) {
+            return 0;
+        }
+
+        if ($this->isJanuaryFullYearDiscountContribution($contribution, $category)) {
+            return (float) $category->calculateMonthlyCoverageAmount(12, $contribution->payment_date);
+        }
+
+        return (float) $category->monthlyBaseAmount() * $coverageCount;
     }
 
     private function isJanuaryFullYearDiscountContribution(
@@ -622,7 +653,7 @@ class ContributionController extends Controller
 
         return $coveragesCount === 12
             && $contribution->payment_date?->month === 1
-            && (float) $contribution->amount === (float) $category->calculateMonthlyCoverageAmount(12, $contribution->payment_date);
+            && $category->januaryFullPaymentDiscountMonths() > 0;
     }
 
     private function formatTrackerMonthlyAmount(float $amount): string

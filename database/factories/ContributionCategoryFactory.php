@@ -18,6 +18,7 @@ class ContributionCategoryFactory extends Factory
             'name' => fake()->unique()->words(2, true),
             'description' => fake()->sentence(),
             'default_amount' => fake()->randomFloat(2, 100, 5000),
+            'january_full_payment_discount_months' => 2,
             'is_active' => true,
         ];
     }

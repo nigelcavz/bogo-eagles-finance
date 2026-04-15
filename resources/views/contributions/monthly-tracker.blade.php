@@ -2,24 +2,32 @@
     $canManage = auth()->user()?->canManageFinance() ?? false;
     $canViewMembers = auth()->user()?->canViewMembers() ?? false;
     $browseTypePages = collect($typePages ?? [])->reject(fn ($typePage) => $typePage['type'] === $type)->values();
+    $januaryDiscountMonths = $category->januaryFullPaymentDiscountMonths();
+    $chargeableMonths = $category->januaryFullPaymentChargeableMonths();
 @endphp
 
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     {{ $category->name }} Tracker
                 </h2>
-                <p class="mt-1 text-sm text-gray-600">
+                <p class="mt-1 max-w-3xl text-sm text-gray-600">
                     One row per member, using actual posted coverage rows to show which months are already paid for {{ $year }}.
                 </p>
-                <p class="mt-2 text-xs text-sky-200">
-                    Full-year monthly dues paid with a January payment date receive a 2-month discount, so 12 months of coverage are charged as 10 months using this contribution type's monthly amount.
-                </p>
+                @if ($januaryDiscountMonths > 0)
+                    <p class="mt-2 max-w-3xl text-xs text-sky-200">
+                        Full-year monthly dues paid with a January payment date discount {{ $januaryDiscountMonths }} month{{ $januaryDiscountMonths === 1 ? '' : 's' }}, so 12 months of coverage are charged as {{ $chargeableMonths }} month{{ $chargeableMonths === 1 ? '' : 's' }} using this contribution type's monthly amount.
+                    </p>
+                @else
+                    <p class="mt-2 max-w-3xl text-xs text-slate-400">
+                        No January full-year discount is currently configured for this contribution type.
+                    </p>
+                @endif
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="relative z-40 flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
                 <a href="{{ route('contributions.index') }}" class="btn-secondary">
                     All Contributions
                 </a>
@@ -389,7 +397,10 @@
                                             member<span x-show="selectedMemberCount !== 1">s</span>
                                         </p>
                                         <p class="text-xs text-slate-400">
-                                            Review your selections, set the payment date, and save to create the monthly dues records. If all 12 months for a member are saved with a January payment date, the amount is charged as 10 months, not 12.
+                                            Review your selections, set the payment date, and save to create the monthly dues records.
+                                            @if ($januaryDiscountMonths > 0)
+                                                If all 12 months for a member are saved with a January payment date, {{ $januaryDiscountMonths }} month{{ $januaryDiscountMonths === 1 ? '' : 's' }} are discounted and the amount is charged as {{ $chargeableMonths }} month{{ $chargeableMonths === 1 ? '' : 's' }}.
+                                            @endif
                                         </p>
                                     </div>
 
@@ -435,7 +446,10 @@
                                                 <p class="text-xs font-semibold uppercase tracking-[0.18em] text-sky-300/85">Confirm Batch Save</p>
                                                 <h3 class="mt-2 text-lg font-semibold text-slate-100">Review Monthly Dues Selections</h3>
                                                 <p class="mt-2 text-sm text-slate-400">
-                                                    Please confirm who will be recorded for this payment batch before saving it to the ledger. Full-year January payments receive a 2-month discount and are charged as 10 months of dues.
+                                                    Please confirm who will be recorded for this payment batch before saving it to the ledger.
+                                                    @if ($januaryDiscountMonths > 0)
+                                                        Full-year January payments discount {{ $januaryDiscountMonths }} month{{ $januaryDiscountMonths === 1 ? '' : 's' }} and are charged as {{ $chargeableMonths }} month{{ $chargeableMonths === 1 ? '' : 's' }} of dues.
+                                                    @endif
                                                 </p>
                                             </div>
 

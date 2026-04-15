@@ -30,6 +30,7 @@ class ContributionCategoryController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:contribution_categories,name'],
             'description' => ['nullable', 'string'],
             'default_amount' => ['nullable', 'numeric', 'gt:0'],
+            'january_full_payment_discount_months' => ['required', 'integer', 'min:0', 'max:12'],
             'is_active' => ['required', 'boolean'],
         ]);
 
@@ -46,6 +47,7 @@ class ContributionCategoryController extends Controller
             'name' => ['required', 'string', 'max:255', 'unique:contribution_categories,name,' . $contributionCategory->id],
             'description' => ['nullable', 'string'],
             'default_amount' => ['nullable', 'numeric', 'gt:0'],
+            'january_full_payment_discount_months' => ['required', 'integer', 'min:0', 'max:12'],
             'is_active' => ['required', 'boolean'],
         ]);
 

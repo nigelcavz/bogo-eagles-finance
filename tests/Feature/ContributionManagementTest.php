@@ -201,7 +201,7 @@ class ContributionManagementTest extends TestCase
         $this->actingAs($user)
             ->get(route('members.show', $memberA))
             ->assertOk()
-            ->assertSee('Member Contribution History')
+            ->assertSee('Contribution History')
             ->assertSee($category->name)
             ->assertDontSee($memberB->full_name);
     }
@@ -236,6 +236,7 @@ class ContributionManagementTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $response = $this->actingAs($user)->post(route('contributions.store'), [
@@ -278,6 +279,7 @@ class ContributionManagementTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $response = $this->actingAs($user)->post(route('contributions.types.tracker-store', [
@@ -340,6 +342,7 @@ class ContributionManagementTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $existingContribution = Contribution::create([
@@ -388,6 +391,7 @@ class ContributionManagementTest extends TestCase
         $member = Member::factory()->create();
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $existingContribution = Contribution::create([
@@ -460,6 +464,7 @@ class ContributionManagementTest extends TestCase
         $member = Member::factory()->create();
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $contribution = Contribution::create([
@@ -506,6 +511,7 @@ class ContributionManagementTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $response = $this->actingAs($user)->post(route('contributions.store'), [
@@ -533,6 +539,7 @@ class ContributionManagementTest extends TestCase
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
             'default_amount' => 700,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $response = $this->actingAs($user)->post(route('contributions.store'), [
@@ -553,7 +560,7 @@ class ContributionManagementTest extends TestCase
         ]);
     }
 
-    public function test_monthly_tracker_shows_monthly_amount_for_paid_months_and_ok_for_discounted_months(): void
+    public function test_monthly_tracker_shows_current_monthly_amount_and_ok_for_discounted_months_on_january_full_year_records(): void
     {
         $user = User::factory()->role('treasurer')->create();
         $member = Member::factory()->create([
@@ -562,7 +569,8 @@ class ContributionManagementTest extends TestCase
         ]);
         $category = ContributionCategory::factory()->create([
             'name' => 'Monthly Dues/Contributions',
-            'default_amount' => 700,
+            'default_amount' => 800,
+            'january_full_payment_discount_months' => 2,
         ]);
 
         $contribution = Contribution::create([
@@ -591,7 +599,79 @@ class ContributionManagementTest extends TestCase
         ]));
 
         $response->assertOk()
-            ->assertSee('700')
-            ->assertSee('OK');
+            ->assertSee('800')
+            ->assertSee('OK')
+            ->assertSee('₱8,000.00');
+    }
+
+    public function test_monthly_tracker_total_paid_uses_current_monthly_amount_for_partial_records(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create([
+            'first_name' => 'Partial',
+            'last_name' => 'Member',
+        ]);
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 800,
+            'january_full_payment_discount_months' => 2,
+        ]);
+
+        $contribution = Contribution::create([
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 2800.00,
+            'payment_date' => '2026-04-10',
+            'coverage_type' => 'monthly',
+            'status' => 'active',
+            'created_by' => $user->id,
+        ]);
+
+        foreach ([1, 2, 3, 4] as $month) {
+            ContributionCoverage::create([
+                'contribution_id' => $contribution->id,
+                'member_id' => $member->id,
+                'coverage_year' => 2026,
+                'coverage_month' => $month,
+                'coverage_label' => now()->setMonth($month)->startOfMonth()->format('M') . ' 2026',
+            ]);
+        }
+
+        $response = $this->actingAs($user)->get(route('contributions.types.show', [
+            'type' => 'monthly-dues',
+            'year' => 2026,
+        ]));
+
+        $response->assertOk()
+            ->assertSee('800')
+            ->assertSee('3,200.00');
+    }
+
+    public function test_full_year_monthly_dues_paid_in_january_uses_category_discount_months(): void
+    {
+        $user = User::factory()->role('treasurer')->create();
+        $member = Member::factory()->create();
+        $category = ContributionCategory::factory()->create([
+            'name' => 'Monthly Dues/Contributions',
+            'default_amount' => 800,
+            'january_full_payment_discount_months' => 2,
+        ]);
+
+        $response = $this->actingAs($user)->post(route('contributions.store'), [
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => 9600.00,
+            'payment_date' => '2026-01-20',
+            'coverage_year' => 2026,
+            'coverage_months' => range(1, 12),
+        ]);
+
+        $response->assertRedirect(route('contributions.types.show', ['type' => 'monthly-dues', 'year' => 2026]));
+
+        $this->assertDatabaseHas('contributions', [
+            'member_id' => $member->id,
+            'contribution_category_id' => $category->id,
+            'amount' => '8000.00',
+        ]);
     }
 }

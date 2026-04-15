@@ -92,6 +92,7 @@
                                             <option
                                                 value="{{ $category->id }}"
                                                 data-default-amount="{{ $category->default_amount }}"
+                                                data-january-discount-months="{{ $category->january_full_payment_discount_months ?? 2 }}"
                                                 @selected((string) old('contribution_category_id', request('contribution_category_id')) === (string) $category->id)
                                             >
                                                 {{ $category->name }}
@@ -104,7 +105,7 @@
                                     <label for="amount" class="block text-sm font-medium text-gray-700">Amount</label>
                                     <input id="amount" name="amount" type="number" step="0.01" min="0.01" value="{{ old('amount') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
                                     <p id="monthly-discount-summary" class="hidden text-xs text-sky-200">
-                                        Full-year Monthly Dues paid in January receive a 2-month discount: 12 months of coverage are charged as 10 months using this contribution type's monthly amount.
+                                        Full-year Monthly Dues paid in January use the discount months configured on this contribution category.
                                     </p>
                                     <p id="monthly-discount-live" class="hidden text-xs text-slate-400"></p>
                                 </div>
@@ -149,7 +150,7 @@
                                                     Monthly Dues/Contributions must record the exact covered months. Duplicate active month coverage is blocked.
                                                 </p>
                                                 <p class="mt-2 text-xs text-sky-200">
-                                                    Discount rule: if all 12 months are paid with a January contribution date, the member receives 2 months off and is charged only 10 times the monthly contribution amount for this type.
+                                                    Discount rule: if all 12 months are paid with a January contribution date, the system uses this category's configured discount months and marks those final months as discounted.
                                                 </p>
                                             </div>
 
@@ -257,6 +258,17 @@
                 return Number.isFinite(parsed) ? parsed : 0;
             };
 
+            const getJanuaryDiscountMonths = () => {
+                const rawValue = getSelectedCategoryOption()?.dataset.januaryDiscountMonths;
+                const parsed = Number.parseInt(rawValue ?? '', 10);
+
+                if (!Number.isFinite(parsed)) {
+                    return 0;
+                }
+
+                return Math.max(0, Math.min(12, parsed));
+            };
+
             const getSelectedMonthlyCoverageCount = () => monthCheckboxes
                 .filter((checkbox) => checkbox.checked && !checkbox.disabled)
                 .length;
@@ -295,9 +307,10 @@
 
                 const selectedMonthCount = getSelectedMonthlyCoverageCount();
                 const effectiveMonthCount = selectedMonthCount > 0 ? selectedMonthCount : 1;
+                const januaryDiscountMonths = getJanuaryDiscountMonths();
 
                 if (selectedMonthCount === 12 && paymentDateMonth() === 1) {
-                    return formatAmount(baseAmount * 10);
+                    return formatAmount(baseAmount * Math.max(0, 12 - januaryDiscountMonths));
                 }
 
                 return formatAmount(baseAmount * effectiveMonthCount);
@@ -334,18 +347,25 @@
                 const baseAmount = getDefaultAmount();
                 const selectedMonthCount = getSelectedMonthlyCoverageCount();
                 const isJanuaryFullYearDiscount = selectedMonthCount === 12 && paymentDateMonth() === 1;
+                const januaryDiscountMonths = getJanuaryDiscountMonths();
+                const chargeableMonths = Math.max(0, 12 - januaryDiscountMonths);
 
                 if (!baseAmount) {
                     monthlyDiscountLive.textContent = '';
                     return;
                 }
 
-                if (isJanuaryFullYearDiscount) {
-                    monthlyDiscountLive.textContent = `Discount applied: 12 months selected in January. Regular total is ${formatCurrency(baseAmount * 12)}, but only ${formatCurrency(baseAmount * 10)} will be charged.`;
+                if (januaryDiscountMonths === 0) {
+                    monthlyDiscountLive.textContent = 'No January full-year discount is currently configured for this contribution type.';
                     return;
                 }
 
-                monthlyDiscountLive.textContent = `Monthly dues are calculated from this contribution type's monthly amount of ${formatCurrency(baseAmount)} per covered month.`;
+                if (isJanuaryFullYearDiscount) {
+                    monthlyDiscountLive.textContent = `Discount applied: 12 months selected in January. Regular total is ${formatCurrency(baseAmount * 12)}, but only ${formatCurrency(baseAmount * chargeableMonths)} will be charged because ${januaryDiscountMonths} month${januaryDiscountMonths === 1 ? '' : 's'} are discounted.`;
+                    return;
+                }
+
+                monthlyDiscountLive.textContent = `Monthly dues are calculated from this contribution type's monthly amount of ${formatCurrency(baseAmount)} per covered month. A January full-year payment discounts ${januaryDiscountMonths} month${januaryDiscountMonths === 1 ? '' : 's'}.`;
             };
 
             const hideMemberResults = () => {

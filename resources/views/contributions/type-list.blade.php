@@ -6,17 +6,17 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                     {{ $category->name }}
                 </h2>
-                <p class="mt-1 text-sm text-gray-600">
+                <p class="mt-1 max-w-3xl text-sm text-gray-600">
                     Review and manage contribution records for this contribution type.
                 </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="relative z-40 flex shrink-0 flex-wrap items-center gap-2 lg:justify-end">
                 <a href="{{ route('contributions.index') }}" class="btn-secondary">
                     All Contributions
                 </a>

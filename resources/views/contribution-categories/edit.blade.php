@@ -48,6 +48,23 @@
                     </div>
 
                     <div>
+                        <label for="january_full_payment_discount_months" class="block text-sm font-medium text-gray-700">January Full-Year Discount Months</label>
+                        <input
+                            id="january_full_payment_discount_months"
+                            name="january_full_payment_discount_months"
+                            type="number"
+                            min="0"
+                            max="12"
+                            value="{{ old('january_full_payment_discount_months', $contributionCategory->january_full_payment_discount_months ?? 2) }}"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                            required
+                        >
+                        <p class="mt-1 text-xs text-gray-500">
+                            Used for Monthly Dues when all 12 months are paid in January. Example: `2` means the member is charged for 10 months and the final 2 months are treated as discounted.
+                        </p>
+                    </div>
+
+                    <div>
                         <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
                         <textarea id="description" name="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">{{ old('description', $contributionCategory->description) }}</textarea>
                     </div>

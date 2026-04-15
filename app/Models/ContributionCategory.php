@@ -19,6 +19,7 @@ class ContributionCategory extends Model
         'name',
         'description',
         'default_amount',
+        'january_full_payment_discount_months',
         'is_active',
     ];
 
@@ -26,6 +27,7 @@ class ContributionCategory extends Model
     {
         return [
             'default_amount' => 'decimal:2',
+            'january_full_payment_discount_months' => 'integer',
             'is_active' => 'boolean',
         ];
     }
@@ -55,13 +57,34 @@ class ContributionCategory extends Model
         return (float) ($this->default_amount ?? 0);
     }
 
+    public function januaryFullPaymentDiscountMonths(): int
+    {
+        return max(0, min(12, (int) ($this->january_full_payment_discount_months ?? 0)));
+    }
+
+    public function januaryFullPaymentChargeableMonths(): int
+    {
+        return max(0, 12 - $this->januaryFullPaymentDiscountMonths());
+    }
+
+    public function discountedCoverageMonthsForFullJanuaryPayment(): array
+    {
+        $discountMonths = $this->januaryFullPaymentDiscountMonths();
+
+        if ($discountMonths === 0) {
+            return [];
+        }
+
+        return range(13 - $discountMonths, 12);
+    }
+
     public function calculateMonthlyCoverageAmount(int $monthCount, mixed $paymentDate = null): string
     {
         $monthCount = max(0, $monthCount);
         $baseAmount = $this->monthlyBaseAmount();
 
         if ($monthCount === 12 && $paymentDate !== null && Carbon::parse($paymentDate)->month === 1) {
-            return number_format($baseAmount * 10, 2, '.', '');
+            return number_format($baseAmount * $this->januaryFullPaymentChargeableMonths(), 2, '.', '');
         }
 
         return number_format($baseAmount * $monthCount, 2, '.', '');

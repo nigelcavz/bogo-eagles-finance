@@ -13,13 +13,15 @@
         $isJanuaryFullYearDiscount = $category->requiresMonthlyCoverage()
             && (int) ($contribution->coverages_count ?? 0) === 12
             && $contribution->payment_date?->month === 1
-            && (float) $contribution->amount === (float) $category->calculateMonthlyCoverageAmount(12, $contribution->payment_date);
+            && $category->januaryFullPaymentDiscountMonths() > 0;
 
-        if ($isJanuaryFullYearDiscount && in_array((int) $coverage->coverage_month, [11, 12], true)) {
+        if ($isJanuaryFullYearDiscount && in_array((int) $coverage->coverage_month, $category->discountedCoverageMonthsForFullJanuaryPayment(), true)) {
+            $discountMonths = $category->januaryFullPaymentDiscountMonths();
+
             return [
                 'kind' => 'discounted',
                 'label' => 'Discounted',
-                'note' => 'January full-year 2-month discount',
+                'note' => "January full-year {$discountMonths}-month discount",
             ];
         }
 

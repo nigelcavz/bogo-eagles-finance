@@ -14,15 +14,15 @@
     @endphp
 
     <x-slot name="header">
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
                 <h2 class="section-heading">Contributions Overview</h2>
-                <p class="section-subheading">
+                <p class="section-subheading max-w-3xl">
                     Navigate by contribution type, monitor audit-friendly records, and open the monthly dues tracker.
                 </p>
             </div>
 
-            <div class="flex flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
+            <div class="relative z-40 flex shrink-0 flex-wrap items-center gap-2 lg:flex-nowrap lg:justify-end">
                 @if ($browseTypePages->isNotEmpty())
                     <x-dropdown align="right" width="64">
                         <x-slot name="trigger">
